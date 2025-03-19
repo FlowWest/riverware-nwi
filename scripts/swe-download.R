@@ -1,9 +1,7 @@
-# Load required libraries
 library(httr)
 library(jsonlite)
 library(lubridate)
 
-# Define NCEI API endpoint and token
 nrcs_api_url <- "https://wcc.sc.egov.usda.gov/awdbRestApi"
 
 get_station_data <- function(station_triplet){
@@ -29,7 +27,8 @@ get_timeseries_data <- function(station_triplet,
     elements = element_cd,
     duration = temp_duration,
     beginDate = start_date,
-    endDate = end_date
+    endDate = end_date,
+    periodRef = "START"
   )
 
   response <- GET(url, query = params)

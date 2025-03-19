@@ -1,0 +1,103 @@
+---
+title: "Generate SWE"
+author: "Inigo Peng"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+    toc_depth: 3
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+library(httr)
+library(jsonlite)
+library(lubridate)
+library(tidyverse)
+library(lubridate)
+library(zoo)
+```
+
+##Download SWE Data
+
+```{r}
+# Function to get timeseries data
+# Default element_cd is WTEQ (Snow Water Equivalent)
+# Default start date is Oct 1 of the current water year
+# Default end date is current date
+# Default data temporal resolution is daily
+get_station_data <- function(station_triplet){
+  station_data <- get_timeseries_data(station_triplet = station_triplet)
+  station_data_df <- as.data.frame(station_data[,2][[1]])$values[[1]]
+  col_name <- station_triplets_lookup[station_triplet]
+  colnames(station_data_df) <- c("Date", col_name)
+  return(station_data_df)
+}
+get_timeseries_data <- function(station_triplet,
+                                element_cd = "WTEQ",
+                                temp_duration = "Daily",
+                                start_date = paste0(year(today() - months(9)), "-10-01"),
+                                end_date = today()) {
+  url <- paste0(nrcs_api_url, "/services/v1/data")
+  params <- list(
+    stationTriplets = station_triplet,
+    elements = element_cd,
+    duration = temp_duration,
+    beginDate = start_date,
+    endDate = end_date,
+    periodRef = "START"
+  )
+  response <- GET(url, query = params)
+  if (status_code(response) == 200) {
+    data <- content(response, "text", encoding = "UTF-8")
+    return(fromJSON(data))
+  } else {
+    print(paste("Error:", status_code(response)))
+    return(NULL)
+  }
+}
+```
+```{r}
+station_triplets_lookup <- readRDS(here::here("data/station_triplets"))
+nrcs_api_url <- "https://wcc.sc.egov.usda.gov/awdbRestApi"
+data_list <- list()
+for (station in names(station_triplets_lookup)) {
+  station_df <- get_station_data(station)
+  data_list[[station]] <- station_df
+}
+full_swe_df <- Reduce(function(x, y) full_join(x, y, by = "Date"), data_list)
+```
+
+## Calculate Basin Averages
+```{r}
+swe_summary <- full_swe_df |> 
+  mutate(
+    ukl_huc8_mean_swe = lag(rowMeans(pick(
+      `Billie Creek Divide SWE (in)`,
+      `Cold Springs Camp SWE (in)`,
+      `Fish Lake SWE (in)`,
+      `Fourmile Lake SWE (in)`,
+      `Sevenmile Marsh SWE (in)`
+      )
+  ), n=1),
+  williamson_huc8_mean_swe = lag(rowMeans(pick(
+    `Diamond Lake SWE (in)`,
+    `Chemult Alternate SWE (in)`,
+    `Silver Creek SWE (in)`, 
+    `Taylor Butte SWE (in)`
+    )
+  ), n=1),
+  sprague_huc8_mean_swe = lag(rowMeans(pick(
+    `Silver Creek SWE (in)`,
+    `Taylor Butte SWE (in)`,
+    `Summer Rim SWE (in)`,
+    `Quartz Mountain SWE (in)`,
+    `Strawberry SWE (in)`
+    )
+  ), n=1),
+  across(everything(), ~ replace_na(.x, 0))
+  ) 
+  mutate()
+write.csv(swe_summary, here::here("data/swe_summary.csv"), row.names = FALSE)
+```
+

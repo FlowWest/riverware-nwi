@@ -95,6 +95,18 @@ latitude <- c(
   42.3339
 )
 prism_locations <- cbind(name, longitude, latitude)
-# prism_locations[, 2:3] <- apply(prism_locations[, 2:3], 2, as.numeric)
-# prism_locations <- as.numeric(prism_locations[,c("longitude","latitude")])]
+station_triplets_lookup <- c(
+  "344:OR:SNTL" = "Billie Creek Divide SWE (in)",
+  "395:OR:SNTL" = "Chemult Alternate SWE (in)",
+  "406:OR:SNTL" = "Cold Springs Camp SWE (in)",
+  "442:OR:SNTL" = "Diamond Lake SWE (in)",
+  "478:WA:SNTL" = "Fish Lake SWE (in)",
+  "483:OR:SNTL" = "Fourmile Lake SWE (in)",
+  "706:OR:SNTL" = "Quartz Mountain SWE (in)",
+  "745:OR:SNTL" = "Sevenmile Marsh SWE (in)",
+  "756:OR:SNTL" = "Silver Creek SWE (in)",
+  "794:OR:SNTL" = "Strawberry SWE (in)",
+  "800:OR:SNTL" = "Summer Rim SWE (in)",
+  "810:OR:SNTL" = "Taylor Butte SWE (in)")
 saveRDS(prism_locations, "data/prism_locations")
+saveRDS(station_triplets_lookup, "data/station_triplets")
