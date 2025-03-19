@@ -16,6 +16,7 @@ library(readr)
 library(dplyr)
 library(tidyverse)
 library(lubridate)
+library(zoo)
 ```
 
 ## Download N34
@@ -41,6 +42,7 @@ n34_df_filtered <- n34_df|>
 clean_n34_df <- n34_df_filtered |> 
   pivot_longer(cols = -Year, names_to = "month", values_to = "N34")|>
   mutate(N34 = ifelse(N34 == -99.99, NA, N34))|>
+  filter(!is.na(N34)) |> 
   mutate(
     month = match(tolower(month), tolower(month.abb)), 
     month = sprintf("%02d", month),  # Ensure two-digit format
@@ -73,6 +75,7 @@ pdo_df_filtered <- pdo_df|>
 clean_pdo_df <- pdo_df_filtered |> 
   pivot_longer(cols = -Year, names_to = "month", values_to = "PDO")|>
   mutate(PDO = ifelse(PDO == 99.99, NA, PDO))|>
+  filter(!is.na(PDO)) |> 
   mutate(
     month = match(tolower(month), tolower(month.abb)), 
     month = sprintf("%02d", month),  # Ensure two-digit format
@@ -99,8 +102,16 @@ full_normalized_df <- clean_n34_df|>
   mutate(normalized_CN34 = round(1 - normalize(N34, minimum_of_n34, maximum_of_n34), 2),
          normalized_pdo = round(normalize(PDO, minimum_of_pdo, maximum_of_pdo), 2),
          combined_pdo_cn34 = normalized_CN34 + normalized_pdo,
-         normalized_pdo_cn34 = round(normalize(combined_pdo_cn34, minimum_of_pdo_cn34, maximum_of_pdo_cn34), 2)) |>View()
-  dplyr::select(index, Year, month, N34, normalized_CN34, PDO, normalized_pdo)
+         normalized_pdo_cn34 = round(normalize(combined_pdo_cn34, minimum_of_pdo_cn34, maximum_of_pdo_cn34), 2)
+         ) |> 
+  ungroup() |> 
+  mutate(
+    three_mta_normalized_PDO = round(rollmean(normalized_pdo, k = 3, fill=NA, align = "right"), 2),
+    three_mta_normalized_PDO_CN34 = round(rollmean(normalized_pdo_cn34, k = 3, fill = NA, align = "right"), 2),
+    three_mta_normalized_PDO_lag_0 = lag(three_mta_normalized_PDO, n=1),
+    three_mta_normalized_PDO_CN34_lag_0 = lag(three_mta_normalized_PDO_CN34, n=1)
+  ) |> 
+  dplyr::select(index, Year, month, N34, normalized_CN34, PDO, normalized_pdo, combined_pdo_cn34, normalized_pdo_cn34, three_mta_normalized_PDO, three_mta_normalized_PDO_CN34,three_mta_normalized_PDO_lag_0, three_mta_normalized_PDO_CN34_lag_0)
 
-write.csv(full_normalized_df, here::here("data/normalized_climated_indicies.csv"), row.names = FALSE)
+write.csv(full_normalized_df, here::here("data/normalized_climat_indicies.csv"), row.names = FALSE)
 ```
