@@ -70,7 +70,21 @@ full_swe_df <- Reduce(function(x, y) full_join(x, y, by = "Date"), data_list)
 
 ## Calculate Basin Averages
 ```{r}
+normalize <- function(x, min_val, max_val) {
+  norm_value <- (x - min_val) / (max_val - min_val)
+  return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
+}
+
+snotel_area <- read_csv(here::here("data/snotel-area.csv"))
+min_max_weight_swe <- read_csv(here::here("data/weighted_avg_swe.csv"))
+
 swe_summary <- full_swe_df |> 
+  mutate(
+    water_year = ifelse(month(Date) >= 10, year(Date) + 1, year(Date))) |> 
+  group_by(water_year) %>% 
+  mutate(
+    day_of_water_year = as.integer(difftime(Date, ymd(paste0(water_year - 1 ,'-09-30')), units = "days"))) |> 
+  ungroup() |> 
   mutate(
     ukl_huc8_mean_swe = lag(rowMeans(pick(
       `Billie Creek Divide SWE (in)`,
@@ -94,10 +108,24 @@ swe_summary <- full_swe_df |>
     `Quartz Mountain SWE (in)`,
     `Strawberry SWE (in)`
     )
-  ), n=1),
-  across(everything(), ~ replace_na(.x, 0))
-  ) 
-  mutate()
+  ), n=1)) |> 
+  mutate_all(funs(replace_na(.,0))) |> 
+  mutate(weighted_average_swe = 
+           (ukl_huc8_mean_swe*snotel_area$`Proportion of area >1500 m`[1]) + 
+           (williamson_huc8_mean_swe*snotel_area$`Proportion of area >1500 m`[2]) + 
+           (sprague_huc8_mean_swe*snotel_area$`Proportion of area >1500 m`[3])) |> 
+  left_join(min_max_weight_swe, by = "day_of_water_year") |>
+  rowwise()|>
+  mutate(normalized_average_swe = round(normalize(weighted_average_swe, 
+                                                  min_weighted_average_swe_in, 
+                                                  max_weighted_average_swe_in), 2))|>
+  select(-c(min_weighted_average_swe_in, 
+            max_weighted_average_swe_in, 
+            max_weighted_normalized_average_swe, 
+            min_weighted_normalized_average_swe)) |> 
+  relocate(water_year, .after = Date) |> 
+  relocate(day_of_water_year, .after = water_year)
+
 write.csv(swe_summary, here::here("data/swe_summary.csv"), row.names = FALSE)
 ```
 
