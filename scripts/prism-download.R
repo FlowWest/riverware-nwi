@@ -3,10 +3,18 @@ library(readr)
 library(ncdf4)
 library(stringr)
 library(tidyverse)
+library(raster)
+library(zoo)
+
+normalize <- function(x, min_val, max_val) {
+  norm_value <- (x - min_val) / (max_val - min_val)
+  return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
+}
+
 element_list <- c("ppt", "tmean", "tmax")
 prism_base_url <- "http://services.nacse.org/prism/data/public/4km"
-start_date <- as.Date("2025-02-01")
-stop_date <- as.Date("2025-02-03")
+start_date <- as.Date("2024-03-21")
+stop_date <- as.Date("2024-03-24")
 prism_locations <- readRDS("data/prism_data/prism_locations")
 prism_coordinates <- apply(prism_locations[,2:3], 2, as.numeric)
 
@@ -14,6 +22,8 @@ prism_ppt_data <- as.data.frame(prism_locations)
 prism_tmean_data <- as.data.frame(prism_locations)
 prism_tmax_data <- as.data.frame(prism_locations)
 
+snotel_area <- read_csv(here::here("data/snotel-area.csv"))
+min_max_ppt <- read_csv("data/min_max_ppt.csv")
 for (element in element_list){
   for (current_date in seq(start_date, stop_date, by = "day")) {
     day <- format(as.Date(current_date), "%Y%m%d")
@@ -22,18 +32,23 @@ for (element in element_list){
     Sys.sleep(2)
   }
   nc_files <- list.files(path = paste0("data-raw/Prism_Files/", element), pattern = "*.zip", full.names = TRUE)
-
   for (file in nc_files){
     date_str <- str_extract(file, "[0-9]{8}")
     unzip(file, exdir = paste0("data-raw/Prism_Files/", element, "/"))
-    ncin <- nc_open(paste0("data-raw/Prism_Files/", element, "/PRISM_", element,"_provisional_4kmD2_", date_str, "_nc.nc"))
+    base_path <- paste0("data-raw/Prism_Files/", element, "/PRISM_", element, "_")
+    possible_files <- c(
+      paste0(base_path, "provisional_4kmD2_", date_str, "_nc.nc"),
+      paste0(base_path, "stable_4kmD2_", date_str, "_nc.nc")
+    )
+    nc_file <- possible_files[file.exists(possible_files)][1]
+    ncin <- nc_open(nc_file)
     lon <- ncvar_get(ncin,"lon")
     lat <- ncvar_get(ncin, "lat")
     element_val <-ncvar_get(ncin, "Band1")
     fillvalue <- ncatt_get(ncin, "Band1", "_FillValue")
     nc_close(ncin)
     element_val[element_val == fillvalue$value] <- NA
-    r <- raster(t(element_val), xmn=min(lon), xmx=max(lon), ymn=min(lat), ymx=max(lat), crs=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0"))
+    r <- raster::raster(t(element_val), xmn=min(lon), xmx=max(lon), ymn=min(lat), ymx=max(lat), crs=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0"))
     r <- flip(r, direction='y')
     date_obj <- as.Date(date_str, format="%Y%m%d")
     raster_data <- raster::extract(r, cbind(prism_coordinates[,"longitude"],prism_coordinates[,"latitude"]), method='simple')
@@ -69,18 +84,44 @@ tmax_long_data <- prism_tmax_data |>
 full_download_data <- ppt_long_data |>
   full_join(tmean_long_data, by = c("name", "date")) |>
   full_join(tmax_long_data, by = c("name", "date")) |>
-  mutate(across(where(is.numeric), ~ round(.x, 2)))
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
 write_csv(full_download_data, "data/prism_data/prism_download.csv")
 
 ppt_data_summary <- ppt_long_data |>
   mutate(group = case_when(
-    startsWith(name, "UKL") ~ "UKL_ppt",
-    startsWith(name, "WIL") ~ "Williamson_ppt",
-    startsWith(name, "SPR") ~ "Sprague_ppt"
+    startsWith(name, "UKL") ~ "mean_total_daily_precip_ukl",
+    startsWith(name, "WIL") ~ "mean_total_daily_precip_williamson",
+    startsWith(name, "SPR") ~ "mean_total_daily_precip_sprague"
   )) |>
   group_by(date, group) |>
-  summarise(mean = mean(ppt)) |>
-  pivot_wider(names_from = "group", values_from ="mean")
+  summarise(mean = round(mean(ppt), 3)) |>
+  pivot_wider(names_from = "group", values_from ="mean") |>
+  mutate(water_year = ifelse(month(date) >= 10, year(date) + 1, year(date))) |>
+  group_by(water_year) %>%
+  mutate(
+    day_of_water_year = as.integer(difftime(date, ymd(paste0(water_year - 1 ,'-09-30')), units = "days"))) |>
+  ungroup() |>
+  relocate("mean_total_daily_precip_sprague", .after = "mean_total_daily_precip_williamson") |>
+  relocate(c("water_year", "day_of_water_year"), .after = "date") |>
+  mutate(weighted_mean_total_daily_precipitation_ukl_catchment_in =
+         round(mean_total_daily_precip_ukl*snotel_area$`Proportion of total area`[1], 3) +
+         round(mean_total_daily_precip_williamson*snotel_area$`Proportion of total area`[2], 3)+
+         round(mean_total_daily_precip_sprague*snotel_area$`Proportion of total area`[3], 3),
+         thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
+         ) |>
+  left_join(min_max_ppt, by = "day_of_water_year") |>
+  rowwise()|>
+  mutate(normalized_30_trailing_sum_precipitation = round(normalize(thirty_d_trailing_sum_precip,
+                                                                    min_30_trailing_sum_ppt,
+                                                                    max_30_trailing_sum_ppt), 2))|>
+  ungroup() |>
+  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt))
+  # mutate(
+  #   thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
+  #   )
+
+
+
 tmean_data_summary <- tmean_long_data |>
   mutate(group = case_when(
     startsWith(name, "UKL") ~ "UKL_tmean",
@@ -102,8 +143,9 @@ tmax_data_summary <- tmax_long_data |>
 summary_data <- ppt_data_summary |>
   full_join(tmean_data_summary, by = c("date")) |>
   full_join(tmax_data_summary, by = c("date")) |>
-  mutate(across(where(is.numeric), ~ round(.x, 2)))
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
 write_csv(summary_data, "data/prism_data/prism_summary.csv")
+write_csv(ppt_data_summary, "data/prism_data/ppt_prism_summary.csv")
 
 # nc_close(ncin)
 # precip[precip == fillvalue$value] <- NA

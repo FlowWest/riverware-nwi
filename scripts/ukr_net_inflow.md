@@ -1,7 +1,7 @@
 Upper Klamath Lake Net Inflow
 ================
 Skyler Lewis
-2025-03-18
+2025-03-20
 
 - [USGS Data Import](#usgs-data-import)
 - [Upper Klamath Lake Storage](#upper-klamath-lake-storage)
@@ -20,6 +20,10 @@ Skyler Lewis
 library(tidyverse)
 ```
 
+    ## Warning: package 'purrr' was built under R version 4.4.1
+
+    ## Warning: package 'lubridate' was built under R version 4.4.1
+
     ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
     ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
     ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
@@ -36,7 +40,7 @@ library(tidyverse)
 library(dataRetrieval)
 ```
 
-    ## Warning: package 'dataRetrieval' was built under R version 4.4.3
+    ## Warning: package 'dataRetrieval' was built under R version 4.4.2
 
 ## USGS Data Import
 
@@ -85,14 +89,14 @@ end_date <- ymd("2024-09-30")
 ukl_navd88 <- get_usgs_data(11507001, 62615, 00003, start_date, end_date)
 ```
 
-    ## C:/Users/skylerlewis/Github/riverware-nwi/data-raw/usgs/usgs_11507001_62615_00003_19800629_20240930.Rds
+    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507001_62615_00003_19800629_20240930.Rds
 
 ``` r
 # Lake or reservoir elevation above United States Bureau of Reclamation Klamath Basin (USBRKB) Datum, feet
 ukl_usbrkb <- get_usgs_data(11507001, 72275, 00003, start_date, end_date)
 ```
 
-    ## C:/Users/skylerlewis/Github/riverware-nwi/data-raw/usgs/usgs_11507001_72275_00003_19800629_20240930.Rds
+    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507001_72275_00003_19800629_20240930.Rds
 
 ``` r
 # USGS  11507500    LINK RIVER AT KLAMATH FALLS, OR
@@ -100,7 +104,7 @@ ukl_usbrkb <- get_usgs_data(11507001, 72275, 00003, start_date, end_date)
 link_q <- get_usgs_data(11507500, 00060, 00003, start_date, end_date)
 ```
 
-    ## C:/Users/skylerlewis/Github/riverware-nwi/data-raw/usgs/usgs_11507500_00060_00003_19800629_20240930.Rds
+    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507500_00060_00003_19800629_20240930.Rds
 
 ``` r
 # USGS  11507501  LINK RIVER BELOW KENO CANAL, NEAR KLAMATH FALLS, OR
@@ -108,7 +112,7 @@ link_q <- get_usgs_data(11507500, 00060, 00003, start_date, end_date)
 link_keno_q <- get_usgs_data(11507501, 00060, 00003, start_date, end_date)
 ```
 
-    ## C:/Users/skylerlewis/Github/riverware-nwi/data-raw/usgs/usgs_11507501_00060_00003_19800629_20240930.Rds
+    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507501_00060_00003_19800629_20240930.Rds
 
 ## Upper Klamath Lake Storage
 
