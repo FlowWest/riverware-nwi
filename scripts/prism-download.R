@@ -119,6 +119,7 @@ ppt_data_summary <- ppt_long_data |>
   # mutate(
   #   thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
   #   )
+write_csv(ppt_data_summary, "data/prism_data/ppt_prism_summary.csv")
 
 
 
@@ -145,7 +146,6 @@ summary_data <- ppt_data_summary |>
   full_join(tmax_data_summary, by = c("date")) |>
   mutate(across(where(is.numeric), ~ round(.x, 3)))
 write_csv(summary_data, "data/prism_data/prism_summary.csv")
-write_csv(ppt_data_summary, "data/prism_data/ppt_prism_summary.csv")
 
 # nc_close(ncin)
 # precip[precip == fillvalue$value] <- NA
