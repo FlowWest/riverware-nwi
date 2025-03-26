@@ -314,7 +314,6 @@ combined_net_inflow <- ukl_storage_ts |>
          ukl_net_inflow = ukl_storage_change_taf + link_keno_taf + canal_a_taf + net_alr_taf - from_caledonia_taf) |>
   filter(row_number() > 1) |>
   glimpse()
-write_csv(combined_net_inflow, here::here("data/combined_net_inflow.csv"))
 ```
 
 ```{r}
@@ -355,6 +354,16 @@ combined_net_inflow_smooth |>
   ggplot(aes(x = date_time)) + 
   geom_line(aes(y = ukl_net_inflow, color = "raw")) + 
   geom_line(aes(y = ukl_net_inflow_smoothed, color = "smoothed"))
-
+```
+```{r}
+combined_net_inflow <- combined_net_inflow |> 
+  rename(date = date_time) |> 
+  mutate(date = as.Date(date, format= "%Y-%m-%d"),
+         date = format(date, "%m/%d/%Y")) 
+combined_net_inflow_smooth <- combined_net_inflow_smooth |> 
+  rename(date = date_time) |> 
+  mutate(date = as.Date(date, format= "%Y-%m-%d"),
+         date = format(date, "%m/%d/%Y"))
+write_csv(combined_net_inflow, here::here("data/combined_net_inflow.csv"))
 write_csv(combined_net_inflow_smooth, here::here("data/combined_net_inflow_smooth.csv"))
 ```

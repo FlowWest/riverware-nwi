@@ -138,7 +138,8 @@ swe_summary <- full_swe_df |>
   relocate(water_year, .after = Date) |> 
   relocate(day_of_water_year, .after = water_year) |> 
   rename(date = Date) |> 
-  mutate(date = as.Date(date, format= "%Y-%m-%d"))
+  mutate(date = as.Date(date, format= "%Y-%m-%d"),
+         date = format(date, "%m/%d/%Y"))
   
 
 write.csv(swe_summary, here::here("data/swe_summary.csv"), row.names = FALSE)
