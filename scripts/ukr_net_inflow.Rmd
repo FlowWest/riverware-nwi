@@ -11,6 +11,7 @@ output:
 
 ```{r setup}
 library(tidyverse)
+library(dplyr)
 
 # install.packages("dataRetrieval")
 library(dataRetrieval)
@@ -45,7 +46,7 @@ get_usgs_data <- function(site_number, parameter, statistic, start_date, end_dat
   data_raw |>
     rename(value = !!sym(str_glue("X_{parm_code}_{stat_code}")),
            cd = !!sym(str_glue("X_{parm_code}_{stat_code}_cd"))) |>
-    select(date_time = dateTime, value, cd)
+    dplyr::select(date_time = dateTime, value, cd)
 }
 ```
 
@@ -56,7 +57,7 @@ USGS data-value qualification codes:
 
 ```{r}
 start_date <- ymd("1980-06-29")
-end_date <- ymd("2024-09-30")
+end_date <- ymd("2025-3-24")
 
 # USGS  11507001  UPPER KLAMATH LAKE NR K.FALLS(WEIGHT/MEAN ELEV) OR
 # Lake or reservoir water surface elevation above NAVD 1988, feet
@@ -150,7 +151,7 @@ Apply the appropriate storage rating curve based on the time window.
 
 ```{r}
 ukl_storage_ts <- ukl_usbrkb |> 
-  select(date_time, ukl_ft_usbrkb = value) |>
+  dplyr::select(date_time, ukl_ft_usbrkb = value) |>
   inner_join(storage_scenarios, by = join_by(ukl_ft_usbrkb)) |>
   transmute(date_time,
             ukl_ft_usbrkb,
@@ -182,12 +183,12 @@ Combine the different sources of Keno Canal flows:
 ```{r}
 link_keno_flows <- 
   link_q |> 
-  select(date_time, link_cfs = value) |>
+  dplyr::select(date_time, link_cfs = value) |>
   left_join(link_keno_q |> 
-              select(date_time, link_keno_cfs = value),
+              dplyr::select(date_time, link_keno_cfs = value),
             by = join_by(date_time)) |>
   left_join(keno_q |> 
-              select(date_time, keno_cfs),
+              dplyr::select(date_time, keno_cfs),
             by = join_by(date_time)) |>
   mutate(water_year = year(date_time) + if_else(month(date_time) >= 10, 1, 0),
          day_of_wy = as.integer(as.Date(date_time) - ymd(paste(water_year - 1, 10, 1))) + 1) |>
@@ -290,16 +291,16 @@ caledonia_v <-
 ```{r}
 combined_net_inflow <- ukl_storage_ts |>
   left_join(link_keno_flows |>
-              select(date_time, link_keno_taf), 
+              dplyr::select(date_time, link_keno_taf), 
             by = join_by(date_time)) |>
   left_join(canal_a_flow |>
-              select(date_time, canal_a_taf), 
+              dplyr::select(date_time, canal_a_taf), 
             by = join_by(date_time)) |>
   left_join(alr_q |>
-              select(date_time, net_alr_taf), 
+              dplyr::select(date_time, net_alr_taf), 
             by = join_by(date_time)) |>
   left_join(caledonia_v |>
-              select(date_time, from_caledonia_taf), 
+              dplyr::select(date_time, from_caledonia_taf), 
             by = join_by(date_time)) |>
   # linear interpolate to fill gaps in lake capacity and link river flows
   complete(date_time = seq(min(date_time), max(date_time), by = "day")) |>
@@ -313,6 +314,7 @@ combined_net_inflow <- ukl_storage_ts |>
          ukl_net_inflow = ukl_storage_change_taf + link_keno_taf + canal_a_taf + net_alr_taf - from_caledonia_taf) |>
   filter(row_number() > 1) |>
   glimpse()
+write_csv(combined_net_inflow, here::here("data/combined_net_inflow.csv"))
 ```
 
 ```{r}
@@ -353,4 +355,6 @@ combined_net_inflow_smooth |>
   ggplot(aes(x = date_time)) + 
   geom_line(aes(y = ukl_net_inflow, color = "raw")) + 
   geom_line(aes(y = ukl_net_inflow_smoothed, color = "smoothed"))
+
+write_csv(combined_net_inflow_smooth, here::here("data/combined_net_inflow_smooth.csv"))
 ```

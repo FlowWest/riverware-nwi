@@ -12,9 +12,10 @@ normalize <- function(x, min_val, max_val) {
 }
 
 element_list <- c("ppt", "tmean", "tmax")
+element_list <- c("ppt")
 prism_base_url <- "http://services.nacse.org/prism/data/public/4km"
-start_date <- as.Date("2024-03-21")
-stop_date <- as.Date("2024-03-24")
+start_date <- as.Date("2025-01-01")
+stop_date <- as.Date("2025-03-24")
 prism_locations <- readRDS("data/prism_data/prism_locations")
 prism_coordinates <- apply(prism_locations[,2:3], 2, as.numeric)
 
@@ -33,14 +34,17 @@ for (element in element_list){
   }
   nc_files <- list.files(path = paste0("data-raw/Prism_Files/", element), pattern = "*.zip", full.names = TRUE)
   for (file in nc_files){
+    print(file)
     date_str <- str_extract(file, "[0-9]{8}")
     unzip(file, exdir = paste0("data-raw/Prism_Files/", element, "/"))
     base_path <- paste0("data-raw/Prism_Files/", element, "/PRISM_", element, "_")
     possible_files <- c(
       paste0(base_path, "provisional_4kmD2_", date_str, "_nc.nc"),
-      paste0(base_path, "stable_4kmD2_", date_str, "_nc.nc")
+      paste0(base_path, "stable_4kmD2_", date_str, "_nc.nc"),
+      paste0(base_path, "early_4kmD2_", date_str, "_nc.nc")
     )
     nc_file <- possible_files[file.exists(possible_files)][1]
+    print(nc_file)
     ncin <- nc_open(nc_file)
     lon <- ncvar_get(ncin,"lon")
     lat <- ncvar_get(ncin, "lat")
@@ -75,6 +79,8 @@ for (element in element_list){
 ppt_long_data <- prism_ppt_data |>
   dplyr::select(-c(longitude, latitude)) |>
   pivot_longer(!name, names_to = "date", values_to = "ppt")
+write_csv(ppt_long_data, "data/prism_data/prism_ppt_download.csv")
+
 tmean_long_data <- prism_tmean_data |>
   dplyr::select(-c(longitude, latitude)) |>
   pivot_longer(!name, names_to = "date", values_to = "tmean")
@@ -101,12 +107,18 @@ ppt_data_summary <- ppt_long_data |>
   mutate(
     day_of_water_year = as.integer(difftime(date, ymd(paste0(water_year - 1 ,'-09-30')), units = "days"))) |>
   ungroup() |>
+  arrange(date) |>
+  mutate(
+    mean_total_daily_precip_ukl = lead(mean_total_daily_precip_ukl, 1),
+    mean_total_daily_precip_williamson = lead(mean_total_daily_precip_williamson, 1),
+    mean_total_daily_precip_sprague = lead(mean_total_daily_precip_sprague, 1)
+  ) |>
   relocate("mean_total_daily_precip_sprague", .after = "mean_total_daily_precip_williamson") |>
   relocate(c("water_year", "day_of_water_year"), .after = "date") |>
-  mutate(weighted_mean_total_daily_precipitation_ukl_catchment_in =
-         round(mean_total_daily_precip_ukl*snotel_area$`Proportion of total area`[1], 3) +
-         round(mean_total_daily_precip_williamson*snotel_area$`Proportion of total area`[2], 3)+
-         round(mean_total_daily_precip_sprague*snotel_area$`Proportion of total area`[3], 3),
+  mutate(weighted_mean_total_daily_precipitation_ukl_catchment_in = round(
+         (mean_total_daily_precip_ukl*snotel_area$`Proportion of total area`[1] +
+         mean_total_daily_precip_williamson*snotel_area$`Proportion of total area`[2]+
+         mean_total_daily_precip_sprague*snotel_area$`Proportion of total area`[3]), 3),
          thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
          ) |>
   left_join(min_max_ppt, by = "day_of_water_year") |>
@@ -116,10 +128,11 @@ ppt_data_summary <- ppt_long_data |>
                                                                     max_30_trailing_sum_ppt), 2))|>
   ungroup() |>
   dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt))
+  # mutate(across(!1, as.numeric))
   # mutate(
   #   thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
   #   )
-write_csv(ppt_data_summary, "data/prism_data/ppt_prism_summary.csv")
+write_csv(ppt_data_summary, "data/prism_data/prism_ppt_summary.csv")
 
 
 
@@ -141,6 +154,7 @@ tmax_data_summary <- tmax_long_data |>
   group_by(date, group) |>
   summarise(mean = mean(tmax)) |>
   pivot_wider(names_from = "group", values_from ="mean")
+
 summary_data <- ppt_data_summary |>
   full_join(tmean_data_summary, by = c("date")) |>
   full_join(tmax_data_summary, by = c("date")) |>
