@@ -92,7 +92,9 @@ full_normalized_df <- clean_n34_df|>
     three_mta_normalized_PDO_lag_0 = lag(three_mta_normalized_PDO, n=1),
     three_mta_normalized_PDO_CN34_lag_0 = lag(three_mta_normalized_PDO_CN34, n=1)
   ) |>
-  dplyr::select(index, Year, month, N34, normalized_CN34, PDO, normalized_pdo, combined_pdo_cn34, normalized_pdo_cn34, three_mta_normalized_PDO, three_mta_normalized_PDO_CN34,three_mta_normalized_PDO_lag_0, three_mta_normalized_PDO_CN34_lag_0) |> glimpse()
+  rename(date=index,
+         year=Year) |>
+  dplyr::select(date, year, month, N34, normalized_CN34, PDO, normalized_pdo, combined_pdo_cn34, normalized_pdo_cn34, three_mta_normalized_PDO, three_mta_normalized_PDO_CN34,three_mta_normalized_PDO_lag_0, three_mta_normalized_PDO_CN34_lag_0) |> glimpse()
 
-write.csv(full_normalized_df, here::here("data/normalized_climate_indicies.csv"), row.names = FALSE)
+write.csv(full_normalized_df, here::here("data/climate_indicies_data/normalized_climate_indicies.csv"), row.names = FALSE)
 print("Normalized climate indicies generated!")

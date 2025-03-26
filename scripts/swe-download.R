@@ -62,4 +62,4 @@ for (station in names(station_triplets_lookup)) {
   data_list[[station]] <- station_df
 }
 full_swe_df <- Reduce(function(x, y) full_join(x, y, by = "Date"), data_list)
-write.csv(full_swe_df, "data/snotel_swe_data.csv", row.names=FALSE)
+write.csv(full_swe_df, "data/swe_data/snotel_swe_data.csv", row.names=FALSE)

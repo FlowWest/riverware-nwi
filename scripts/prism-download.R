@@ -127,8 +127,9 @@ ppt_data_summary <- ppt_long_data |>
                                                                     min_30_trailing_sum_ppt,
                                                                     max_30_trailing_sum_ppt), 2))|>
   ungroup() |>
-  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt))
-  # mutate(across(!1, as.numeric))
+  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) |>
+  mutate(date = as.Date(date, format= "%Y-%m-%d"),
+         date = format(date, "%m/%d/%Y"))
   # mutate(
   #   thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
   #   )

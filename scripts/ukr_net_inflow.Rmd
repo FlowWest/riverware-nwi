@@ -356,14 +356,13 @@ combined_net_inflow_smooth |>
   geom_line(aes(y = ukl_net_inflow_smoothed, color = "smoothed"))
 ```
 ```{r}
-combined_net_inflow <- combined_net_inflow |> 
-  rename(date = date_time) |> 
-  mutate(date = as.Date(date, format= "%Y-%m-%d"),
-         date = format(date, "%m/%d/%Y")) 
+# combined_net_inflow <- combined_net_inflow |> 
+#   rename(date = date_time) |> 
+#   mutate(date = as.Date(date, format= "%Y-%m-%d"),
+#          date = format(date, "%m/%d/%Y")) 
 combined_net_inflow_smooth <- combined_net_inflow_smooth |> 
   rename(date = date_time) |> 
   mutate(date = as.Date(date, format= "%Y-%m-%d"),
          date = format(date, "%m/%d/%Y"))
-write_csv(combined_net_inflow, here::here("data/combined_net_inflow.csv"))
-write_csv(combined_net_inflow_smooth, here::here("data/combined_net_inflow_smooth.csv"))
+write_csv(combined_net_inflow_smooth, here::here("data/ukr_net_inflow/combined_net_inflow.csv"))
 ```
