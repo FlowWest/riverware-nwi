@@ -314,6 +314,7 @@ combined_net_inflow <- ukl_storage_ts |>
          ukl_net_inflow = ukl_storage_change_taf + link_keno_taf + canal_a_taf + net_alr_taf - from_caledonia_taf) |>
   filter(row_number() > 1) |>
   glimpse()
+
 ```
 
 ```{r}
@@ -346,9 +347,8 @@ exp_smooth_ts <- function(ts, alpha) {
 
 combined_net_inflow_smooth <-
   combined_net_inflow |>
-  mutate(ukl_net_inflow_smoothed = exp_smooth_ts(ukl_net_inflow, alpha = 0.182)) |>
-  glimpse()
-
+  mutate(ukl_net_inflow_smoothed = lag(exp_smooth_ts(ukl_net_inflow, alpha = 0.182), 1))
+# any(format(combined_net_inflow_smooth$date_time, "%m-%d") == "02-29")
 combined_net_inflow_smooth |>
   head(100) |>
   ggplot(aes(x = date_time)) + 
@@ -362,7 +362,51 @@ combined_net_inflow_smooth |>
 #          date = format(date, "%m/%d/%Y")) 
 combined_net_inflow_smooth <- combined_net_inflow_smooth |> 
   rename(date = date_time) |> 
-  mutate(date = as.Date(date, format= "%Y-%m-%d"),
-         date = format(date, "%m/%d/%Y"))
+  mutate(date = as.Date(date, format= "%Y-%m-%d"))
 write_csv(combined_net_inflow_smooth, here::here("data/ukr_net_inflow/combined_net_inflow.csv"))
+```
+```{r}
+observed_net_inflow_30_d_trailing_sum <- read_csv(here::here("data/ukr_net_inflow/trailing_sum_agency_lake_barnes_wy_1991_2022.csv")) |> glimpse()
+
+l1_taf <- read_csv(here::here("data/ukr_net_inflow/l1_taf.csv"), col_types = cols(date =col_date(format = "%m/%d/%Y")))
+
+l1_taf <- l1_taf|> 
+  mutate(thirty_d_trailing_sum_uklni_taf = lag(round(rollsum(I1_taf, k = 30, fill=NA, align = "right"), 2), n=1)) |> glimpse()
+
+simulated_net_inflow_30_d_trailing_sum <- observed_net_inflow_30_d_trailing_sum |> 
+  left_join(l1_taf, by = c("day_of_water_year")) |>
+  group_by(day_of_water_year) |> 
+  summarise(simulated_max_thirty_d_trailing_sum_uklni_taf=max(thirty_d_trailing_sum_uklni_taf, na.rm = TRUE),
+            simulated_min_thirty_d_trailing_sum_uklni_taf=min(thirty_d_trailing_sum_uklni_taf, na.rm = TRUE)) |> 
+  ungroup() |>
+  left_join(observed_net_inflow_30_d_trailing_sum, by=c("day_of_water_year")) |> glimpse()
+   # mutate(simulated_accounting_reconnection = )
+write_csv(simulated_net_inflow_30_d_trailing_sum,
+          here::here("data/ukr_net_inflow/obs_sim_trailing_sum_agency_lake_barnes.csv"))
+```
+
+```{r}
+
+normalize <- function(x, min_val, max_val) {
+  norm_value <- (x - min_val) / (max_val - min_val)
+  return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
+}
+
+combined_net_inflow_smooth_roll_sum <- combined_net_inflow_smooth |>
+  mutate(
+    water_year = ifelse(month(date) >= 10, year(date) + 1, year(date))) |> 
+  group_by(water_year) %>% 
+  mutate(
+    day_of_water_year = as.integer(difftime(date, ymd(paste0(water_year - 1 ,'-09-30')), units = "days"))) |> 
+  ungroup() |> 
+  mutate(
+    ukl_net_inflow_30_d_trailing_sum_taf = lag(rollsum(ukl_net_inflow_smoothed, k = 30, fill=NA, align = "right"), 1)) |>View() 
+  left_join(simulated_net_inflow_30_d_trailing_sum, by=c("day_of_water_year")) |>
+  rowwise() |> 
+  mutate(
+         normalized_30_d_trailing_sum = round(normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf
+                                                ), 2) 
+         ) |> View()
+# any(format(combined_net_inflow_smooth_roll_sum$date, "%m-%d") == "02-29")
+
 ```

@@ -11,11 +11,11 @@ normalize <- function(x, min_val, max_val) {
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
 }
 
-element_list <- c("ppt", "tmean", "tmax")
+# element_list <- c("ppt", "tmean", "tmax")
 element_list <- c("ppt")
 prism_base_url <- "http://services.nacse.org/prism/data/public/4km"
-start_date <- as.Date("2025-01-01")
-stop_date <- as.Date("2025-03-24")
+start_date <- as.Date("2024-10-01")
+stop_date <- as.Date("2025-01-01")
 prism_locations <- readRDS("data/prism_data/prism_locations")
 prism_coordinates <- apply(prism_locations[,2:3], 2, as.numeric)
 
@@ -23,8 +23,8 @@ prism_ppt_data <- as.data.frame(prism_locations)
 prism_tmean_data <- as.data.frame(prism_locations)
 prism_tmax_data <- as.data.frame(prism_locations)
 
-snotel_area <- read_csv(here::here("data/snotel-area.csv"))
-min_max_ppt <- read_csv("data/min_max_ppt.csv")
+snotel_area <- read_csv(here::here("data/swe_data/snotel-area.csv"))
+min_max_ppt <- read_csv("data/prism_data/min_max_ppt.csv")
 for (element in element_list){
   for (current_date in seq(start_date, stop_date, by = "day")) {
     day <- format(as.Date(current_date), "%Y%m%d")

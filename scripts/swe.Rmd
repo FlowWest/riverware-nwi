@@ -139,8 +139,7 @@ swe_summary <- full_swe_df |>
   relocate(water_year, .after = Date) |> 
   relocate(day_of_water_year, .after = water_year) |> 
   rename(date = Date) |> 
-  mutate(date = as.Date(date, format= "%Y-%m-%d"),
-         date = format(date, "%m/%d/%Y")) |> 
+  mutate(date = as.Date(date, format= "%Y-%m-%d")) |> 
   dplyr::select(-c(
     `Billie Creek Divide SWE (in)`,
     `Cold Springs Camp SWE (in)`,
