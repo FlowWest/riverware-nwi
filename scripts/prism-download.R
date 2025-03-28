@@ -131,7 +131,7 @@ ppt_data_summary <- ppt_long_data |>
   # dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) |>
   mutate(date = as.Date(date, format= "%Y-%m-%d"))
 
-ppt_data_summary |>
+ppt_data_summary <- ppt_data_summary |>
   arrange(date) |>
   rowwise() |>
   mutate(
@@ -139,7 +139,7 @@ ppt_data_summary |>
     end_date = date %m-% months(1) - days(1),
     trailing_sum_31_1095_d_precip_in
     = sum(ppt_data_summary$weighted_mean_total_daily_precipitation_ukl_catchment_in[ppt_data_summary$date >= start_date & ppt_data_summary$date <= end_date])
-  ) |> View()
+  )
          # date = format(date, "%m/%d/%Y"))
   # mutate(
   #   thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)

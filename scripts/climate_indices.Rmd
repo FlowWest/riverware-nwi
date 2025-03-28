@@ -55,7 +55,7 @@ clean_n34_df <- n34_df_filtered |>
 ```{r}
 pdo_url <- "https://www.ncei.noaa.gov/pub/data/cmb/ersst/v5/index/ersst.v5.pdo.dat"
 workspace <- here::here("data-raw")
-pdo_file <- paste0(workspace, "pdo_index_data.txt")
+pdo_file <- paste0(workspace, "/pdo_index_data.txt")
 download.file(pdo_url, destfile = pdo_file, mode = "wb")
 ```
 ## Read in and clean PDO
