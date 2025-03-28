@@ -14,14 +14,15 @@ normalize <- function(x, min_val, max_val) {
 # element_list <- c("ppt", "tmean", "tmax")
 element_list <- c("ppt")
 prism_base_url <- "http://services.nacse.org/prism/data/public/4km"
-start_date <- as.Date("2024-10-01")
-stop_date <- as.Date("2025-01-01")
+start_date <- as.Date("2020-10-01")
+stop_date <- as.Date("2024-9-30")
 prism_locations <- readRDS("data/prism_data/prism_locations")
 prism_coordinates <- apply(prism_locations[,2:3], 2, as.numeric)
 
 prism_ppt_data <- as.data.frame(prism_locations)
 prism_tmean_data <- as.data.frame(prism_locations)
 prism_tmax_data <- as.data.frame(prism_locations)
+local_dir <- "Z:/Shared/Active_Projects/083-02_SDM_Support_Base_Year/Modeling/NWI"
 
 snotel_area <- read_csv(here::here("data/swe_data/snotel-area.csv"))
 min_max_ppt <- read_csv("data/prism_data/min_max_ppt.csv")
@@ -29,15 +30,15 @@ for (element in element_list){
   for (current_date in seq(start_date, stop_date, by = "day")) {
     day <- format(as.Date(current_date), "%Y%m%d")
     download_url <- paste0(prism_base_url, "/", element, "/", day, "?format=nc")
-    download.file(download_url, destfile = paste0("data-raw/Prism_Files/",element,"/",day,"_",element, ".zip"), mode = "wb")
+    download.file(download_url, destfile = paste0(local_dir,"/Prism_Files/",element,"/",day,"_",element, ".zip"), mode = "wb")
     Sys.sleep(2)
   }
-  nc_files <- list.files(path = paste0("data-raw/Prism_Files/", element), pattern = "*.zip", full.names = TRUE)
+  nc_files <- list.files(path = paste0(local_dir,"/Prism_Files/", element), pattern = "*.zip", full.names = TRUE)
   for (file in nc_files){
     print(file)
     date_str <- str_extract(file, "[0-9]{8}")
-    unzip(file, exdir = paste0("data-raw/Prism_Files/", element, "/"))
-    base_path <- paste0("data-raw/Prism_Files/", element, "/PRISM_", element, "_")
+    unzip(file, exdir = paste0(local_dir, "/Prism_Files/", element, "/unzipped_files"))
+    base_path <- paste0(local_dir,"/Prism_Files/", element, "/unzipped_files/PRISM_", element, "_")
     possible_files <- c(
       paste0(base_path, "provisional_4kmD2_", date_str, "_nc.nc"),
       paste0(base_path, "stable_4kmD2_", date_str, "_nc.nc"),
@@ -127,9 +128,19 @@ ppt_data_summary <- ppt_long_data |>
                                                                     min_30_trailing_sum_ppt,
                                                                     max_30_trailing_sum_ppt), 2))|>
   ungroup() |>
-  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) |>
-  mutate(date = as.Date(date, format= "%Y-%m-%d"),
-         date = format(date, "%m/%d/%Y"))
+  # dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) |>
+  mutate(date = as.Date(date, format= "%Y-%m-%d"))
+
+ppt_data_summary |>
+  arrange(date) |>
+  rowwise() |>
+  mutate(
+    start_date = date %m-% years(3),
+    end_date = date %m-% months(1) - days(1),
+    trailing_sum_31_1095_d_precip_in
+    = sum(ppt_data_summary$weighted_mean_total_daily_precipitation_ukl_catchment_in[ppt_data_summary$date >= start_date & ppt_data_summary$date <= end_date])
+  ) |> View()
+         # date = format(date, "%m/%d/%Y"))
   # mutate(
   #   thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
   #   )

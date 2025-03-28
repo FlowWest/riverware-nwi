@@ -371,7 +371,7 @@ observed_net_inflow_30_d_trailing_sum <- read_csv(here::here("data/ukr_net_inflo
 l1_taf <- read_csv(here::here("data/ukr_net_inflow/l1_taf.csv"), col_types = cols(date =col_date(format = "%m/%d/%Y")))
 
 l1_taf <- l1_taf|> 
-  mutate(thirty_d_trailing_sum_uklni_taf = lag(round(rollsum(I1_taf, k = 30, fill=NA, align = "right"), 2), n=1)) |> glimpse()
+  mutate(thirty_d_trailing_sum_uklni_taf = lag(round(zoo::rollsum(I1_taf, k = 30, fill=NA, align = "right"), 2), n=1)) |> glimpse()
 
 simulated_net_inflow_30_d_trailing_sum <- observed_net_inflow_30_d_trailing_sum |> 
   left_join(l1_taf, by = c("day_of_water_year")) |>
@@ -392,7 +392,7 @@ normalize <- function(x, min_val, max_val) {
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
 }
 
-combined_net_inflow_smooth_roll_sum <- combined_net_inflow_smooth |>
+net_inflow_export <- combined_net_inflow_smooth |>
   mutate(
     water_year = ifelse(month(date) >= 10, year(date) + 1, year(date))) |> 
   group_by(water_year) %>% 
@@ -400,13 +400,15 @@ combined_net_inflow_smooth_roll_sum <- combined_net_inflow_smooth |>
     day_of_water_year = as.integer(difftime(date, ymd(paste0(water_year - 1 ,'-09-30')), units = "days"))) |> 
   ungroup() |> 
   mutate(
-    ukl_net_inflow_30_d_trailing_sum_taf = lag(rollsum(ukl_net_inflow_smoothed, k = 30, fill=NA, align = "right"), 1)) |>View() 
+    ukl_net_inflow_30_d_trailing_sum_taf = lag(zoo::rollsum(ukl_net_inflow_smoothed, k = 30, fill=NA, align = "right"), 1)) |> 
   left_join(simulated_net_inflow_30_d_trailing_sum, by=c("day_of_water_year")) |>
   rowwise() |> 
   mutate(
-         normalized_30_d_trailing_sum = round(normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf
-                                                ), 2) 
-         ) |> View()
-# any(format(combined_net_inflow_smooth_roll_sum$date, "%m-%d") == "02-29")
+         normalized_30_d_trailing_sum = round(normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf), 2)
+         ) |> 
+  ungroup() |> 
+  dplyr::select(c(date, water_year, day_of_water_year, ukl_net_inflow_smoothed, ukl_net_inflow_30_d_trailing_sum_taf, normalized_30_d_trailing_sum))
+
+write_csv(net_inflow_export, here::here("data/ukr_net_inflow/net_inflow_export.csv"))
 
 ```
