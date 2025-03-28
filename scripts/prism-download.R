@@ -101,7 +101,7 @@ ppt_data_summary <- ppt_long_data |>
     startsWith(name, "SPR") ~ "mean_total_daily_precip_sprague"
   )) |>
   group_by(date, group) |>
-  summarise(mean = round(mean(ppt), 3)) |>
+  summarise(mean = mean(ppt)) |>
   pivot_wider(names_from = "group", values_from ="mean") |>
   mutate(water_year = ifelse(month(date) >= 10, year(date) + 1, year(date))) |>
   group_by(water_year) %>%
@@ -116,10 +116,10 @@ ppt_data_summary <- ppt_long_data |>
   ) |>
   relocate("mean_total_daily_precip_sprague", .after = "mean_total_daily_precip_williamson") |>
   relocate(c("water_year", "day_of_water_year"), .after = "date") |>
-  mutate(weighted_mean_total_daily_precipitation_ukl_catchment_in = round(
+  mutate(weighted_mean_total_daily_precipitation_ukl_catchment_in = lag(round(
          (mean_total_daily_precip_ukl*snotel_area$`Proportion of total area`[1] +
          mean_total_daily_precip_williamson*snotel_area$`Proportion of total area`[2]+
-         mean_total_daily_precip_sprague*snotel_area$`Proportion of total area`[3]), 3),
+         mean_total_daily_precip_sprague*snotel_area$`Proportion of total area`[3]), 3), 1, default = 0),
          thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
          ) |>
   left_join(min_max_ppt, by = "day_of_water_year") |>
@@ -131,24 +131,26 @@ ppt_data_summary <- ppt_long_data |>
   # dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) |>
   mutate(date = as.Date(date, format= "%Y-%m-%d"))
 
-ppt_data_summary <- ppt_data_summary |>
+ppt_data_export <- ppt_data_summary |>
   arrange(date) |>
   rowwise() |>
   mutate(
     start_date = date %m-% years(3),
     end_date = date %m-% months(1) - days(1),
     trailing_sum_31_1095_d_precip_in
-    = sum(ppt_data_summary$weighted_mean_total_daily_precipitation_ukl_catchment_in[ppt_data_summary$date >= start_date & ppt_data_summary$date <= end_date])
-  )
-         # date = format(date, "%m/%d/%Y"))
-  # mutate(
-  #   thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
-  #   )
-write_csv(ppt_data_summary, "data/prism_data/prism_ppt_summary.csv")
+    = sum(ppt_data_summary$weighted_mean_total_daily_precipitation_ukl_catchment_in[ppt_data_summary$date >= start_date & ppt_data_summary$date <= end_date], na.rm = TRUE),
+    normalized_trailing_sum_31_1095_d_precip_in = round(normalize(trailing_sum_31_1095_d_precip_in,
+                                                            min_31_1095_d_trailing_sum_ppt,
+                                                            max_of_31_1095_d_trailing_sum_ppt), 2)
+  ) |>
+  ungroup() |>
+  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt))
+
+write_csv(ppt_data_export, "data/prism_data/prism_ppt_summary_export.csv")
 
 
 
-tmean_data_summary <- tmean_long_data |>
+  tmean_data_summary <- tmean_long_data |>
   mutate(group = case_when(
     startsWith(name, "UKL") ~ "UKL_tmean",
     startsWith(name, "WIL") ~ "Williamson_tmean",
