@@ -39,7 +39,7 @@ nwi <-prism_data |>
          weight_for_tot_31_1095_d_trailing_sum_precip = round(day_of_water_year*wp_1095_slope + wp_1095_intercept, 3),
          weight_for_normalized_weighted_avg_swe = round(day_of_water_year*ws_slope + ws_intercept, 3),
          weight_for_climate_index = round(day_of_water_year*wc_slope + wc_intercept, 3),
-         climate_index_lag_0 = round(ifelse(climate_index_used == "3 mta PDO_CN34", three_mta_normalized_PDO_CN34, three_mta_normalized_PDO_lag_0), 3),
+         climate_index_lag_0 = round(ifelse(climate_index_used == "3 mta PDO_CN34", three_mta_normalized_PDO_CN34_lag_0, three_mta_normalized_PDO_lag_0), 3),
          wetness_index_v20 =round(
            normalized_30_d_trailing_sum_UKLNI*weight_for_30_d_trailing_sum_UKLNI +
            normalized_30_trailing_sum_precipitation*weight_for_30_d_trailing_sum_precip +
