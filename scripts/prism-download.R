@@ -144,7 +144,7 @@ ppt_data_export <- ppt_data_summary |>
                                                             max_of_31_1095_d_trailing_sum_ppt), 2)
   ) |>
   ungroup() |>
-  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt))
+  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt, start_date, end_date))
 
 write_csv(ppt_data_export, "data/prism_data/prism_ppt_summary_export.csv")
 
