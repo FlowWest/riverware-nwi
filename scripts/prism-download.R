@@ -126,7 +126,7 @@ ppt_data_summary <- ppt_long_data |>
   rowwise()|>
   mutate(normalized_30_trailing_sum_precipitation = round(normalize(thirty_d_trailing_sum_precip,
                                                                     min_30_trailing_sum_ppt,
-                                                                    max_30_trailing_sum_ppt), 2))|>
+                                                                    max_30_trailing_sum_ppt), 3))|>
   ungroup() |>
   # dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) |>
   mutate(date = as.Date(date, format= "%Y-%m-%d"))
@@ -141,7 +141,7 @@ ppt_data_export <- ppt_data_summary |>
     = sum(ppt_data_summary$weighted_mean_total_daily_precipitation_ukl_catchment_in[ppt_data_summary$date >= start_date & ppt_data_summary$date <= end_date], na.rm = TRUE),
     normalized_trailing_sum_31_1095_d_precip_in = round(normalize(trailing_sum_31_1095_d_precip_in,
                                                             min_31_1095_d_trailing_sum_ppt,
-                                                            max_of_31_1095_d_trailing_sum_ppt), 2)
+                                                            max_of_31_1095_d_trailing_sum_ppt), 3)
   ) |>
   ungroup() |>
   dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt, start_date, end_date))

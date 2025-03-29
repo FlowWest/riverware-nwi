@@ -99,15 +99,15 @@ full_normalized_df <- clean_n34_df|>
   left_join(normalizing_values, by = "month")|>
   left_join(clean_pdo_df, by = c("month", "index", "Year")) |>
   rowwise()|>
-  mutate(normalized_CN34 = round(1 - normalize(N34, minimum_of_n34, maximum_of_n34), 2),
-         normalized_pdo = round(normalize(PDO, minimum_of_pdo, maximum_of_pdo), 2),
+  mutate(normalized_CN34 = round(1 - normalize(N34, minimum_of_n34, maximum_of_n34), 3),
+         normalized_pdo = round(normalize(PDO, minimum_of_pdo, maximum_of_pdo), 3),
          combined_pdo_cn34 = normalized_CN34 + normalized_pdo,
-         normalized_pdo_cn34 = round(normalize(combined_pdo_cn34, minimum_of_pdo_cn34, maximum_of_pdo_cn34), 2)
+         normalized_pdo_cn34 = round(normalize(combined_pdo_cn34, minimum_of_pdo_cn34, maximum_of_pdo_cn34), 3)
          ) |> 
   ungroup() |> 
   mutate(
-    three_mta_normalized_PDO = round(rollmean(normalized_pdo, k = 3, fill=NA, align = "right"), 2),
-    three_mta_normalized_PDO_CN34 = round(rollmean(normalized_pdo_cn34, k = 3, fill = NA, align = "right"), 2),
+    three_mta_normalized_PDO = round(rollmean(normalized_pdo, k = 3, fill=NA, align = "right"), 3),
+    three_mta_normalized_PDO_CN34 = round(rollmean(normalized_pdo_cn34, k = 3, fill = NA, align = "right"), 3),
     three_mta_normalized_PDO_lag_0 = lag(three_mta_normalized_PDO, n=1),
     three_mta_normalized_PDO_CN34_lag_0 = lag(three_mta_normalized_PDO_CN34, n=1)
   ) |> 

@@ -404,10 +404,10 @@ net_inflow_export <- combined_net_inflow_smooth |>
   left_join(simulated_net_inflow_30_d_trailing_sum, by=c("day_of_water_year")) |>
   rowwise() |> 
   mutate(
-         normalized_30_d_trailing_sum = round(normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf), 2)
+         normalized_30_d_trailing_sum_UKLNI = round(normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf), 3)
          ) |> 
   ungroup() |> 
-  dplyr::select(c(date, water_year, day_of_water_year, ukl_net_inflow_smoothed, ukl_net_inflow_30_d_trailing_sum_taf, normalized_30_d_trailing_sum))
+  dplyr::select(c(date, water_year, day_of_water_year, ukl_net_inflow_smoothed, ukl_net_inflow_30_d_trailing_sum_taf, normalized_30_d_trailing_sum_UKLNI))
 
 write_csv(net_inflow_export, here::here("data/ukr_net_inflow/net_inflow_export.csv"))
 
