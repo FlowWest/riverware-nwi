@@ -19,8 +19,32 @@ library(zoo)
 library(dplyr)
 ```
 
-##Download SWE Data
+This R Markdown script is used to generate SWE inputs for NWI. 
+Inputs: 
 
+* HUC 8 Station Codes  (data/swe_data/station_triplets)
+* HUC 8 Area Proportions (data/swe_data/snotel-area.csv)
+* SWE weighted averages  (data/swe_data/weighted_avg_swe.csv)
+
+```{r}
+station_triplets_lookup <- readRDS(here::here("data/swe_data/station_triplets")) |> glimpse()
+snotel_area <- read_csv(here::here("data/swe_data/snotel-area.csv")) |> glimpse()
+min_max_weight_swe <- read_csv(here::here("data/swe_data/weighted_avg_swe.csv")) |> glimpse() 
+```
+
+Outputs: 
+
+* SWE Download (data/swe_data/swe_download.csv)
+* SWE indices with values for NWI caluclation (data/swe_data/swe_summary.csv)
+
+TODOs:
+Decide on start date and end date for SWE time series data. Default start date is Oct 1 of the current water year. Default end date is current date. 
+```{r}
+timeseries_start_date = paste0(year(today() - months(9)), "-10-01")
+timeseries_end_date = today()
+```
+
+## Download SWE Data
 ```{r}
 # Function to get timeseries data
 # Default element_cd is WTEQ (Snow Water Equivalent)
@@ -37,8 +61,8 @@ get_station_data <- function(station_triplet){
 get_timeseries_data <- function(station_triplet,
                                 element_cd = "WTEQ",
                                 temp_duration = "Daily",
-                                start_date = paste0(year(today() - months(9)), "-10-01"),
-                                end_date = today()) {
+                                start_date = timeseries_start_date,
+                                end_date = timeseries_end_date) {
   url <- paste0(nrcs_api_url, "/services/v1/data")
   params <- list(
     stationTriplets = station_triplet,
@@ -59,26 +83,22 @@ get_timeseries_data <- function(station_triplet,
 }
 ```
 ```{r}
-station_triplets_lookup <- readRDS(here::here("data/station_triplets"))
 nrcs_api_url <- "https://wcc.sc.egov.usda.gov/awdbRestApi"
 data_list <- list()
 for (station in names(station_triplets_lookup)) {
   station_df <- get_station_data(station)
   data_list[[station]] <- station_df
 }
-full_swe_df <- Reduce(function(x, y) full_join(x, y, by = "Date"), data_list)
+full_swe_df <- Reduce(function(x, y) full_join(x, y, by = "Date"), data_list) |> glimpse()
 write_csv(full_swe_df, here::here("data/swe_data/swe_download.csv"))
 ```
 
-## Calculate Basin Averages
+## Calculate basin averages, weighted averaged, and normalized values
 ```{r}
 normalize <- function(x, min_val, max_val) {
   norm_value <- (x - min_val) / (max_val - min_val)
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
 }
-
-snotel_area <- read_csv(here::here("data/swe_data/snotel-area.csv"))
-min_max_weight_swe <- read_csv(here::here("data/swe_data/weighted_avg_swe.csv")) 
 
 swe_summary <- full_swe_df |> 
   mutate(
@@ -153,7 +173,7 @@ swe_summary <- full_swe_df |>
     `Summer Rim SWE (in)`,
     `Quartz Mountain SWE (in)`,
     `Strawberry SWE (in)`
-      ))
+      )) |> glimpse()
   
 
 write.csv(swe_summary, here::here("data/swe_data/swe_summary.csv"), row.names = FALSE)

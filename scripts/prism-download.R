@@ -14,15 +14,15 @@ normalize <- function(x, min_val, max_val) {
 # element_list <- c("ppt", "tmean", "tmax")
 element_list <- c("ppt")
 prism_base_url <- "http://services.nacse.org/prism/data/public/4km"
-start_date <- as.Date("2020-10-01")
-stop_date <- as.Date("2024-9-30")
+start_date <- Sys.Date()-15
+stop_date <- Sys.Date()
 prism_locations <- readRDS("data/prism_data/prism_locations")
 prism_coordinates <- apply(prism_locations[,2:3], 2, as.numeric)
 
 prism_ppt_data <- as.data.frame(prism_locations)
 prism_tmean_data <- as.data.frame(prism_locations)
 prism_tmax_data <- as.data.frame(prism_locations)
-local_dir <- "Z:/Shared/Active_Projects/083-02_SDM_Support_Base_Year/Modeling/NWI"
+# local_dir <- "Z:/Shared/Active_Projects/083-02_SDM_Support_Base_Year/Modeling/NWI"
 
 snotel_area <- read_csv(here::here("data/swe_data/snotel-area.csv"))
 min_max_ppt <- read_csv("data/prism_data/min_max_ppt.csv")

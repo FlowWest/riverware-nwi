@@ -1,33 +1,53 @@
----
-title: "Generate Climate Indices"
-author: "Inigo Peng"
-date: "`r Sys.Date()`"
-output: 
-  github_document:
-    toc: true
-    toc_depth: 3
-    number_sections: false
+Generate Climate Indices
+================
+Inigo Peng
+2025-03-29
 
----
+- [Generate Climate Indicies](#generate-climate-indicies)
+  - [Download N34](#download-n34)
+  - [Read in and clean N34](#read-in-and-clean-n34)
+  - [Download PDO](#download-pdo)
+  - [Read in and clean PDO](#read-in-and-clean-pdo)
+  - [Normalize N34, PDO, generate three day moving
+    average](#normalize-n34-pdo-generate-three-day-moving-average)
 
-```{r setup, include=FALSE}
-library(httr)
-library(readr)
-library(dplyr)
-library(tidyverse)
-library(lubridate)
-library(zoo)
+# Generate Climate Indicies
+
+This R Markdown script is used to generate climate index inputs for NWI.
+Inputs:
+
+- data/climate_indicies_data/min_max_pdo_n34.csv
+
+``` r
+normalizing_values <- read_csv(here::here( "data/climate_indicies_data/min_max_pdo_n34.csv"))
 ```
 
+    ## Rows: 12 Columns: 7
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## Delimiter: ","
+    ## dbl (7): Month, Maximum_of_PDO, Minimum_of_PDO, Maximum_of_N34, Minimum_of_N...
+    ## 
+    ## ℹ Use `spec()` to retrieve the full column specification for this data.
+    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+Outputs:
+
+- data-raw/n34.txt
+- data-raw/pdo.txt
+- data/climate_indicies_data/normalized_climate_indicies.csv
+
 ## Download N34
-```{r}
+
+``` r
 nino_url <- "https://psl.noaa.gov/data/correlation/nina34.anom.data"
 workspace <- here::here("data-raw")
 nino_file <- paste0(workspace,"/n34.txt")
 download.file(nino_url, destfile = nino_file, mode = "wb")
 ```
+
 ## Read in and clean N34
-```{r}
+
+``` r
 nino_raw <- read_lines(nino_file)
 #Remove header
 n34 <- nino_raw[-1]
@@ -51,15 +71,19 @@ clean_n34_df <- n34_df_filtered |>
     Year = as.numeric(Year))|>
   relocate(index, .before = Year)
 ```
+
 ## Download PDO
-```{r}
+
+``` r
 pdo_url <- "https://www.ncei.noaa.gov/pub/data/cmb/ersst/v5/index/ersst.v5.pdo.dat"
 workspace <- here::here("data-raw")
-pdo_file <- paste0(workspace, "/pdo_index_data.txt")
+pdo_file <- paste0(workspace, "/pdo.txt")
 download.file(pdo_url, destfile = pdo_file, mode = "wb")
 ```
+
 ## Read in and clean PDO
-```{r}
+
+``` r
 pdo_raw <- read_lines(pdo_file)
 #Remove header
 pdo<- pdo_raw[-1]
@@ -85,14 +109,14 @@ clean_pdo_df <- pdo_df_filtered |>
   relocate(index, .before = Year)
 ```
 
-Normalize N34, PDO, generate three day moving average
-```{r}
+## Normalize N34, PDO, generate three day moving average
+
+``` r
 normalize <- function(x, min_val, max_val) {
   norm_value <- (x - min_val) / (max_val - min_val)
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
 }
 
-normalizing_values <- read_csv(here::here( "data/climate_indicies_data/min_max_pdo_n34.csv"))
 colnames(normalizing_values) <- tolower(colnames(normalizing_values))
 
 full_normalized_df <- clean_n34_df|>
