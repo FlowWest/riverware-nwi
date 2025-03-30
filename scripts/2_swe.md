@@ -3,9 +3,12 @@ Generate SWE
 Inigo Peng
 2025-03-29
 
+- [Generate SWE](#generate-swe)
 - [Download SWE Data](#download-swe-data)
 - [Calculate basin averages, weighted averaged, and normalized
   values](#calculate-basin-averages-weighted-averaged-and-normalized-values)
+
+## Generate SWE
 
 This R Markdown script is used to generate SWE inputs for NWI. Inputs:
 

@@ -19,6 +19,8 @@ library(zoo)
 library(dplyr)
 ```
 
+## Generate SWE
+
 This R Markdown script is used to generate SWE inputs for NWI. 
 Inputs: 
 
