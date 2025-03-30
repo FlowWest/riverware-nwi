@@ -18,7 +18,6 @@ library(tidyverse)
 library(lubridate)
 library(zoo)
 ```
-# Generate Climate Indicies
 
 This R Markdown script is used to generate climate index inputs for NWI. 
 Inputs: 
@@ -36,14 +35,14 @@ Outputs:
 
 TODOs: None
 
-## Download N34
+### Download N34
 ```{r}
 nino_url <- "https://psl.noaa.gov/data/correlation/nina34.anom.data"
 workspace <- here::here("data-raw")
 nino_file <- paste0(workspace,"/n34.txt")
 download.file(nino_url, destfile = nino_file, mode = "wb")
 ```
-## Read in and clean N34
+### Read in and clean N34
 ```{r}
 nino_raw <- read_lines(nino_file)
 #Remove header
@@ -68,14 +67,14 @@ clean_n34_df <- n34_df_filtered |>
     Year = as.numeric(Year))|>
   relocate(index, .before = Year)
 ```
-## Download PDO
+### Download PDO
 ```{r}
 pdo_url <- "https://www.ncei.noaa.gov/pub/data/cmb/ersst/v5/index/ersst.v5.pdo.dat"
 workspace <- here::here("data-raw")
 pdo_file <- paste0(workspace, "/pdo.txt")
 download.file(pdo_url, destfile = pdo_file, mode = "wb")
 ```
-## Read in and clean PDO
+### Read in and clean PDO
 ```{r}
 pdo_raw <- read_lines(pdo_file)
 #Remove header
@@ -102,7 +101,7 @@ clean_pdo_df <- pdo_df_filtered |>
   relocate(index, .before = Year)
 ```
 
-## Normalize N34, PDO, generate three day moving average
+### Normalize N34, PDO, generate three day moving average
 ```{r}
 normalize <- function(x, min_val, max_val) {
   norm_value <- (x - min_val) / (max_val - min_val)

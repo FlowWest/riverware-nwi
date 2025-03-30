@@ -1,14 +1,11 @@
 Generate SWE
 ================
 Inigo Peng
-2025-03-29
+2025-03-30
 
-- [Generate SWE](#generate-swe)
 - [Download SWE Data](#download-swe-data)
 - [Calculate basin averages, weighted averaged, and normalized
   values](#calculate-basin-averages-weighted-averaged-and-normalized-values)
-
-## Generate SWE
 
 This R Markdown script is used to generate SWE inputs for NWI. Inputs:
 
@@ -79,7 +76,7 @@ timeseries_start_date = paste0(year(today() - months(9)), "-10-01")
 timeseries_end_date = today()
 ```
 
-## Download SWE Data
+### Download SWE Data
 
 ``` r
 # Function to get timeseries data
@@ -129,7 +126,7 @@ for (station in names(station_triplets_lookup)) {
 full_swe_df <- Reduce(function(x, y) full_join(x, y, by = "Date"), data_list) |> glimpse()
 ```
 
-    ## Rows: 180
+    ## Rows: 181
     ## Columns: 13
     ## $ Date                           <chr> "2024-10-01", "2024-10-02", "2024-10-03…
     ## $ `Billie Creek Divide SWE (in)` <dbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
@@ -149,7 +146,7 @@ full_swe_df <- Reduce(function(x, y) full_join(x, y, by = "Date"), data_list) |>
 write_csv(full_swe_df, here::here("data/swe_data/swe_download.csv"))
 ```
 
-## Calculate basin averages, weighted averaged, and normalized values
+### Calculate basin averages, weighted averaged, and normalized values
 
 ``` r
 normalize <- function(x, min_val, max_val) {
@@ -244,7 +241,7 @@ swe_summary <- full_swe_df |>
     ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
     ## generated.
 
-    ## Rows: 180
+    ## Rows: 181
     ## Columns: 13
     ## $ date                        <date> 2024-10-01, 2024-10-02, 2024-10-03, 2024-…
     ## $ water_year                  <dbl> 2025, 2025, 2025, 2025, 2025, 2025, 2025, …

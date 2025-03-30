@@ -19,8 +19,6 @@ library(raster)
 library(zoo)
 ```
 
-## Generate SWE
-
 This R Markdown script is used to generate Prism inputs for NWI. 
 Inputs: 
 
@@ -44,7 +42,7 @@ Outputs:
 
 TODOs:
 * Decide on start date and end date for Prism time series data. Default start date is 15 days before current date. Default end date is current date.
-* Decide on download location director - downloading historical files could add up so make sure there's enough disk space.
+* Decide on download location director - downloading historical files could add up so make sure there's enough disk space. If choosing a separate directory, make sure its structured as ".../Prism_Files/{element}/
 * If downloading historic data, only need PPT.
 
 Note: also first time generation will need historic data to generate the values for `trailing_sum_31_1095_d_precip_in`
@@ -58,7 +56,7 @@ element_list <- c("ppt")
 local_dir <- here::here("data-raw/")
 ```
 
-## Prism Data Download
+### Prism Data Download
 ```{r}
 normalize <- function(x, min_val, max_val) {
   norm_value <- (x - min_val) / (max_val - min_val)
@@ -71,7 +69,7 @@ prism_tmean_data <- as.data.frame(prism_locations)
 prism_tmax_data <- as.data.frame(prism_locations)
 ```
 
-## Loop through elements, download zipped nc files, unzip nc files and parsel for the interested location 
+### Loop through elements, download zipped nc files, unzip nc files and parsel for the interested location using coordinates
 ```{r}
 for (element in element_list){
   for (current_date in seq(prism_start_date, prism_end_date, by = "day")) {
@@ -124,6 +122,7 @@ for (element in element_list){
 }
 ```
 
+### Download extracted data
 ```{r}
 ppt_long_data <- prism_ppt_data |>
   dplyr::select(-c(longitude, latitude)) |>
@@ -143,7 +142,7 @@ full_download_data <- ppt_long_data |>
 write_csv(full_download_data, here::here("data/prism_data/prism_download.csv"))
 ```
 
-## Generate data summaries, normalized values 
+### Generate data summaries, normalized values 
 ```{r}
 ppt_data_summary <- ppt_long_data |>
   mutate(group = case_when(

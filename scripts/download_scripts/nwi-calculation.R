@@ -9,20 +9,21 @@ normalize <- function(x, min_val, max_val) {
 
 nwi_min_max <- read_csv(here::here("data/nwi_data/nwi_min_max.csv"))
 model_weights <- read_csv(here::here("data/nwi_data/nwi_model_weights.csv")) |> dplyr::select(-c("date", "day_of_water_year"))
-  # mutate(day_of_water_year = as.integer(day_of_water_year))
 prism_data <- read_csv(here::here("data/prism_data/prism_ppt_summary_export.csv")) |> glimpse()
 climate_indicies <- read_csv(here::here("data/climate_indicies_data/normalized_climate_indicies.csv"), col_types = cols(date=col_date(format = "%Y-%m")))
 swe <- read_csv(here::here("data/swe_data/swe_summary.csv"))
 uklni_net_inflow <- read_csv(here::here("data/ukr_net_inflow/net_inflow_export.csv"))
 
 current_water_year <- ifelse(month(Sys.Date()) >= 10, as.integer(year(Sys.Date()) + 1), as.integer(year(Sys.Date())))
+start_year <- current_water_year - 1
+start_date <- as.Date(paste0(year(Sys.Date()) - 1, "-09-14"))
 expanded_climate_indicies <- climate_indicies |>
   rowwise() %>%
   mutate(date = list(seq.Date(date, ceiling_date(date, "month") - days(1), by = "day"))) |>
   unnest(date)
 
 nwi <-prism_data |>
-  filter(water_year == current_water_year) |>
+  filter(water_year >= start_year & date > start_date) |>
   left_join(swe, by = c("date", "water_year", "day_of_water_year")) |>
   mutate(month = as.integer(format(date, "%m")),
          day = as.integer(format(date, "%d")),

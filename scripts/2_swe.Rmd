@@ -19,8 +19,6 @@ library(zoo)
 library(dplyr)
 ```
 
-## Generate SWE
-
 This R Markdown script is used to generate SWE inputs for NWI. 
 Inputs: 
 
@@ -46,7 +44,7 @@ timeseries_start_date = paste0(year(today() - months(9)), "-10-01")
 timeseries_end_date = today()
 ```
 
-## Download SWE Data
+### Download SWE Data
 ```{r}
 # Function to get timeseries data
 # Default element_cd is WTEQ (Snow Water Equivalent)
@@ -95,7 +93,7 @@ full_swe_df <- Reduce(function(x, y) full_join(x, y, by = "Date"), data_list) |>
 write_csv(full_swe_df, here::here("data/swe_data/swe_download.csv"))
 ```
 
-## Calculate basin averages, weighted averaged, and normalized values
+### Calculate basin averages, weighted averaged, and normalized values
 ```{r}
 normalize <- function(x, min_val, max_val) {
   norm_value <- (x - min_val) / (max_val - min_val)

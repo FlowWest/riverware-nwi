@@ -16,6 +16,23 @@ library(dplyr)
 # install.packages("dataRetrieval")
 library(dataRetrieval)
 ```
+## Generate UKR Net Inflow
+
+This R Markdown script is used to generate UKR Netinflow inputs for NWI. 
+Inputs: 
+
+* UKL Bathmytry (data-raw"/elev_cap/ukl_bathy.csv)
+* Keno flow (data-raw/other_flows/keno_suppl_flows.csv)
+* Agency Lake Ranch Calculation (data-raw/other_flows/agency_lake_ranch_calcs.csv)
+* Caledonia March flow (data-raw/other_flows/from_caledonia_marsh.csv)
+* Agency Lake Barnes trailing sum (data/ukr_net_inflow/trailing_sum_agency_lake_barnes_wy_1991_2022.csv)
+* UKL net inflow after accounting for ALB reconnection in PA simulation (data/ukr_net_inflow/l1_taf.csv)
+
+Outputs:
+
+* Smoothed net inflow (data/ukr_net_inflow/combined_net_inflow.csv)
+* Observed and Simulated trailing agency lake barnes trailing sum (data/ukr_net_inflow/obs_sim_trailing_sum_agency_lake_barnes.csv)
+* Normalized 30 day trailing sum (data/ukr_net_inflow/net_inflow_export.csv)
 
 ## USGS Data Import
 
@@ -365,6 +382,7 @@ combined_net_inflow_smooth <- combined_net_inflow_smooth |>
   mutate(date = as.Date(date, format= "%Y-%m-%d"))
 write_csv(combined_net_inflow_smooth, here::here("data/ukr_net_inflow/combined_net_inflow.csv"))
 ```
+## Generate observed and simulated Agency Lake Barnes trailing sum
 ```{r}
 observed_net_inflow_30_d_trailing_sum <- read_csv(here::here("data/ukr_net_inflow/trailing_sum_agency_lake_barnes_wy_1991_2022.csv")) |> glimpse()
 
@@ -384,7 +402,7 @@ simulated_net_inflow_30_d_trailing_sum <- observed_net_inflow_30_d_trailing_sum 
 write_csv(simulated_net_inflow_30_d_trailing_sum,
           here::here("data/ukr_net_inflow/obs_sim_trailing_sum_agency_lake_barnes.csv"))
 ```
-
+## Generate normalized and trailing ukl net inflow
 ```{r}
 
 normalize <- function(x, min_val, max_val) {

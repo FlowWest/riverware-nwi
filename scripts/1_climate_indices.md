@@ -1,22 +1,19 @@
 Generate Climate Indices
 ================
 Inigo Peng
-2025-03-29
+2025-03-30
 
-- [Generate Climate Indicies](#generate-climate-indicies)
-  - [Download N34](#download-n34)
-  - [Read in and clean N34](#read-in-and-clean-n34)
-  - [Download PDO](#download-pdo)
-  - [Read in and clean PDO](#read-in-and-clean-pdo)
-  - [Normalize N34, PDO, generate three day moving
-    average](#normalize-n34-pdo-generate-three-day-moving-average)
-
-# Generate Climate Indicies
+- [Download N34](#download-n34)
+- [Read in and clean N34](#read-in-and-clean-n34)
+- [Download PDO](#download-pdo)
+- [Read in and clean PDO](#read-in-and-clean-pdo)
+- [Normalize N34, PDO, generate three day moving
+  average](#normalize-n34-pdo-generate-three-day-moving-average)
 
 This R Markdown script is used to generate climate index inputs for NWI.
 Inputs:
 
-- data/climate_indicies_data/min_max_pdo_n34.csv
+- PDO N34 min max (data/climate_indicies_data/min_max_pdo_n34.csv)
 
 ``` r
 normalizing_values <- read_csv(here::here( "data/climate_indicies_data/min_max_pdo_n34.csv"))
@@ -36,7 +33,9 @@ Outputs:
 - data-raw/pdo.txt
 - data/climate_indicies_data/normalized_climate_indicies.csv
 
-## Download N34
+TODOs: None
+
+### Download N34
 
 ``` r
 nino_url <- "https://psl.noaa.gov/data/correlation/nina34.anom.data"
@@ -45,7 +44,7 @@ nino_file <- paste0(workspace,"/n34.txt")
 download.file(nino_url, destfile = nino_file, mode = "wb")
 ```
 
-## Read in and clean N34
+### Read in and clean N34
 
 ``` r
 nino_raw <- read_lines(nino_file)
@@ -72,7 +71,7 @@ clean_n34_df <- n34_df_filtered |>
   relocate(index, .before = Year)
 ```
 
-## Download PDO
+### Download PDO
 
 ``` r
 pdo_url <- "https://www.ncei.noaa.gov/pub/data/cmb/ersst/v5/index/ersst.v5.pdo.dat"
@@ -81,7 +80,7 @@ pdo_file <- paste0(workspace, "/pdo.txt")
 download.file(pdo_url, destfile = pdo_file, mode = "wb")
 ```
 
-## Read in and clean PDO
+### Read in and clean PDO
 
 ``` r
 pdo_raw <- read_lines(pdo_file)
@@ -109,7 +108,7 @@ clean_pdo_df <- pdo_df_filtered |>
   relocate(index, .before = Year)
 ```
 
-## Normalize N34, PDO, generate three day moving average
+### Normalize N34, PDO, generate three day moving average
 
 ``` r
 normalize <- function(x, min_val, max_val) {
