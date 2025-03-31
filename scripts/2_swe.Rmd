@@ -40,7 +40,8 @@ Outputs:
 TODOs:
 Decide on start date and end date for SWE time series data. Default start date is Oct 1 of the current water year. Default end date is current date. 
 ```{r}
-timeseries_start_date = paste0(year(today() - months(9)), "-10-01")
+timeseries_start_date = paste0(
+  if_else(month(Sys.Date()) <=10, year(Sys.Date()) - 1, year(Sys.Date())), "-09-15")
 timeseries_end_date = today()
 ```
 
