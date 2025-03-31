@@ -45,11 +45,11 @@ TODOs:
 * Decide on download location director - downloading historical files could add up so make sure there's enough disk space. If choosing a separate directory, make sure its structured as ".../Prism_Files/{element}/
 * If downloading historic data, only need PPT.
 
-Note: also first time generation will need historic data to generate the values for `trailing_sum_31_1095_d_precip_in`
+Note: also first time generation will need historic data (back to Oct 2020) to generate the values for `trailing_sum_31_1095_d_precip_in`. This takes a long time to download and process 4 + years of data.
 
 ```{r}
-prism_start_date = Sys.Date() - 15
-prism_end_date = Sys.Date()
+prism_start_date = Sys.Date() - 16
+prism_end_date = Sys.Date() - 1
 # element_list <- c("ppt", "tmean", "tmax")
 element_list <- c("ppt")
 # local_dir <- "Z:/Shared/Active_Projects/083-02_SDM_Support_Base_Year/Modeling/NWI"
@@ -122,27 +122,15 @@ for (element in element_list){
 }
 ```
 
-### Download extracted data
+### Download extract PPT data
 ```{r}
 ppt_long_data <- prism_ppt_data |>
   dplyr::select(-c(longitude, latitude)) |>
   pivot_longer(!name, names_to = "date", values_to = "ppt")
 write_csv(ppt_long_data, here::here("data/prism_data/prism_ppt_download.csv"))
-
-tmean_long_data <- prism_tmean_data |>
-  dplyr::select(-c(longitude, latitude)) |>
-  pivot_longer(!name, names_to = "date", values_to = "tmean")
-tmax_long_data <- prism_tmax_data |>
-  dplyr::select(-c(longitude, latitude)) |>
-  pivot_longer(!name, names_to = "date", values_to = "tmax")
-full_download_data <- ppt_long_data |>
-  full_join(tmean_long_data, by = c("name", "date")) |>
-  full_join(tmax_long_data, by = c("name", "date")) |>
-  mutate(across(where(is.numeric), ~ round(.x, 3)))
-write_csv(full_download_data, here::here("data/prism_data/prism_download.csv"))
 ```
 
-### Generate data summaries, normalized values 
+### Generate data PPT data summaries, normalized values 
 ```{r}
 ppt_data_summary <- ppt_long_data |>
   mutate(group = case_when(
@@ -197,7 +185,25 @@ ppt_data_export <- ppt_data_summary |>
   dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt, start_date, end_date))
 
 write_csv(ppt_data_export, here::here("data/prism_data/prism_ppt_summary_export.csv"))
+```
 
+### Run these chunks if downloaded Tmean and Tmax Data
+
+```{r}
+tmean_long_data <- prism_tmean_data |>
+  dplyr::select(-c(longitude, latitude)) |>
+  pivot_longer(!name, names_to = "date", values_to = "tmean")
+tmax_long_data <- prism_tmax_data |>
+  dplyr::select(-c(longitude, latitude)) |>
+  pivot_longer(!name, names_to = "date", values_to = "tmax")
+full_download_data <- ppt_long_data |>
+  full_join(tmean_long_data, by = c("name", "date")) |>
+  full_join(tmax_long_data, by = c("name", "date")) |>
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+write_csv(full_download_data, here::here("data/prism_data/prism_download.csv"))
+```
+
+```{r}
 tmean_data_summary <- tmean_long_data |>
   mutate(group = case_when(
     startsWith(name, "UKL") ~ "UKL_tmean",
