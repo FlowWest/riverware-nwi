@@ -27,6 +27,9 @@ Inputs:
 
 ```{r}
 normalize <- function(x, min_val, max_val) {
+  if (isTRUE(all(c(x, min_val, max_val) == 0, na.rm = TRUE))) {
+    return(0)
+  }
   norm_value <- (x - min_val) / (max_val - min_val)
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
 }
@@ -100,6 +103,12 @@ nwi <- prism_full |>
   rowwise() |>
   mutate(normalized_wetness_index_v20 = round(normalize(wetness_index_v20, min_nwi_v20, max_nwi_v20), 3)) |>
   ungroup() |>
+  mutate(
+    normalized_wetness_index_v20 = if_else(
+      day_of_water_year == 366, lag(normalized_wetness_index_v20),
+      normalized_wetness_index_v20
+    )
+  ) |> 
   mutate(trailing_2_week_mean_nwi_v20 = round(zoo::rollmean(normalized_wetness_index_v20, k=14, fill=NA, align = "right"), 3))
 nwi_cleaned <- nwi[,c("date", "month", "day", "year", "day_of_water_year", "leap_year_index",
        "period",
