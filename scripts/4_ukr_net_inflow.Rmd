@@ -34,6 +34,12 @@ Outputs:
 * Observed and Simulated trailing agency lake barnes trailing sum (data/ukr_net_inflow/obs_sim_trailing_sum_agency_lake_barnes.csv)
 * Normalized 30 day trailing sum (data/ukr_net_inflow/net_inflow_export.csv)
 
+TODO:
+Set start and end date. Default start_date is 1980-06-29, and default end_date is Sys.Date().
+```{r}
+start_date <- ymd("1980-06-29")
+end_date <- Sys.Date()
+```
 ## USGS Data Import
 
 ```{r}
@@ -73,8 +79,6 @@ USGS data-value qualification codes:
 * P = Provisional data subject to revision.
 
 ```{r}
-start_date <- ymd("1980-06-29")
-end_date <- ymd("2025-3-24")
 
 # USGS  11507001  UPPER KLAMATH LAKE NR K.FALLS(WEIGHT/MEAN ELEV) OR
 # Lake or reservoir water surface elevation above NAVD 1988, feet
