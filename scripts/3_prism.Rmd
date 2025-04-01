@@ -80,6 +80,10 @@ for (element in element_list){
     download.file(download_url, destfile = paste0(local_dir,"/Prism_Files/",element,"/",day,"_",element, ".zip"), mode = "wb")
     Sys.sleep(2)
   }
+}
+```
+```{r}
+for (element in element_list){
   nc_files <- list.files(path = paste0(local_dir,"/Prism_Files/", element), pattern = "*.zip", full.names = TRUE)
   for (file in nc_files){
     print(file)

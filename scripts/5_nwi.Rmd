@@ -64,6 +64,9 @@ expanded_climate_indicies <- climate_indicies |>
 ```
 
 ### Calculate NWI, normalized NWI and 2 week lag NWI
+$$
+WI_d = q_d Q_{d-1} + s_d S_{d-1} + pn_d PN_{d-1} + pl_d PL_{d-1} + c_d C_{m-1}
+$$
 ```{r}
 prism_data_edit <-prism_data |>
   filter(water_year >= start_year & date > start_date) |>

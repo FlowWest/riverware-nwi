@@ -1,7 +1,7 @@
 Upper Klamath Lake Net Inflow
 ================
 Skyler Lewis
-2025-03-30
+2025-04-01
 
 - [Generate UKR Net Inflow](#generate-ukr-net-inflow)
 - [USGS Data Import](#usgs-data-import)
@@ -72,6 +72,14 @@ Outputs:
 - Normalized 30 day trailing sum
   (data/ukr_net_inflow/net_inflow_export.csv)
 
+TODO: Set start and end date. Default start_date is 1980-06-29, and
+default end_date is Sys.Date().
+
+``` r
+start_date <- ymd("1980-06-29")
+end_date <- Sys.Date()
+```
+
 ## USGS Data Import
 
 ``` r
@@ -111,22 +119,19 @@ USGS data-value qualification codes:
 - P = Provisional data subject to revision.
 
 ``` r
-start_date <- ymd("1980-06-29")
-end_date <- ymd("2025-3-24")
-
 # USGS  11507001  UPPER KLAMATH LAKE NR K.FALLS(WEIGHT/MEAN ELEV) OR
 # Lake or reservoir water surface elevation above NAVD 1988, feet
 ukl_navd88 <- get_usgs_data(11507001, 62615, 00003, start_date, end_date)
 ```
 
-    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507001_62615_00003_19800629_20250324.Rds
+    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507001_62615_00003_19800629_20250401.Rds
 
 ``` r
 # Lake or reservoir elevation above United States Bureau of Reclamation Klamath Basin (USBRKB) Datum, feet
 ukl_usbrkb <- get_usgs_data(11507001, 72275, 00003, start_date, end_date)
 ```
 
-    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507001_72275_00003_19800629_20250324.Rds
+    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507001_72275_00003_19800629_20250401.Rds
 
 ``` r
 # USGS  11507500    LINK RIVER AT KLAMATH FALLS, OR
@@ -134,7 +139,7 @@ ukl_usbrkb <- get_usgs_data(11507001, 72275, 00003, start_date, end_date)
 link_q <- get_usgs_data(11507500, 00060, 00003, start_date, end_date)
 ```
 
-    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507500_00060_00003_19800629_20250324.Rds
+    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507500_00060_00003_19800629_20250401.Rds
 
 ``` r
 # USGS  11507501  LINK RIVER BELOW KENO CANAL, NEAR KLAMATH FALLS, OR
@@ -142,7 +147,7 @@ link_q <- get_usgs_data(11507500, 00060, 00003, start_date, end_date)
 link_keno_q <- get_usgs_data(11507501, 00060, 00003, start_date, end_date)
 ```
 
-    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507501_00060_00003_19800629_20250324.Rds
+    ## C:/Users/Inigo/Projects/riverware-nwi/data-raw/usgs/usgs_11507501_00060_00003_19800629_20250401.Rds
 
 ## Upper Klamath Lake Storage
 
@@ -287,7 +292,7 @@ ukl_storage_ts <- ukl_usbrkb |>
   glimpse()
 ```
 
-    ## Rows: 16,332
+    ## Rows: 16,341
     ## Columns: 3
     ## $ date_time       <dttm> 1980-06-29, 1980-06-30, 1980-07-01, 1980-07-02, 1980-…
     ## $ ukl_ft_usbrkb   <dbl> 4142.55, 4142.53, 4142.50, 4142.48, 4142.45, 4142.48, …
@@ -346,7 +351,7 @@ link_keno_flows <-
   glimpse()
 ```
 
-    ## Rows: 16,340
+    ## Rows: 16,347
     ## Columns: 7
     ## $ date_time     <dttm> 1980-06-29, 1980-06-30, 1980-07-01, 1980-07-02, 1980-07…
     ## $ link_cfs      <dbl> 463, 522, 472, 599, 446, 217, 211, 374, 463, 650, 812, 6…
@@ -503,7 +508,7 @@ combined_net_inflow <- ukl_storage_ts |>
   glimpse()
 ```
 
-    ## Rows: 16,339
+    ## Rows: 16,346
     ## Columns: 9
     ## $ date_time              <dttm> 1980-06-30, 1980-07-01, 1980-07-02, 1980-07-03…
     ## $ ukl_ft_usbrkb          <dbl> 4142.53, 4142.50, 4142.48, 4142.45, 4142.48, 41…
@@ -526,7 +531,7 @@ combined_net_inflow |>
   ylab("change in storage (thousand acre-feet)")
 ```
 
-![](4_ukr_net_inflow_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](4_ukr_net_inflow_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 ``` r
 combined_net_inflow |>
@@ -535,7 +540,7 @@ combined_net_inflow |>
   ylab("cumulative storage relative to start (thousand acre-feet)")
 ```
 
-![](4_ukr_net_inflow_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](4_ukr_net_inflow_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ### Smoothing
 
@@ -562,7 +567,7 @@ combined_net_inflow_smooth |>
     ## Warning: Removed 1 row containing missing values or values outside the scale range
     ## (`geom_line()`).
 
-![](4_ukr_net_inflow_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](4_ukr_net_inflow_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 ``` r
 # combined_net_inflow <- combined_net_inflow |> 
@@ -653,10 +658,17 @@ net_inflow_export <- combined_net_inflow_smooth |>
   left_join(simulated_net_inflow_30_d_trailing_sum, by=c("day_of_water_year")) |>
   rowwise() |> 
   mutate(
-         normalized_30_d_trailing_sum_UKLNI = round(normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf), 3)
-         ) |> 
-  ungroup() |> 
-  dplyr::select(c(date, water_year, day_of_water_year, ukl_net_inflow_smoothed, ukl_net_inflow_30_d_trailing_sum_taf, normalized_30_d_trailing_sum_UKLNI))
+         normalized_30_d_trailing_sum_UKLNI =
+           round(normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf), 3)
+         ) |>
+  ungroup() |>
+  mutate(
+    normalized_30_d_trailing_sum_UKLNI = if_else(
+      day_of_water_year == 366, lag(normalized_30_d_trailing_sum_UKLNI),
+      normalized_30_d_trailing_sum_UKLNI
+    )
+  ) |> 
+  dplyr::select(c(date, water_year, day_of_water_year, ukl_net_inflow_smoothed, ukl_net_inflow_30_d_trailing_sum_taf, normalized_30_d_trailing_sum_UKLNI)) 
 
 write_csv(net_inflow_export, here::here("data/ukr_net_inflow/net_inflow_export.csv"))
 ```

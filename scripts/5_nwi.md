@@ -1,7 +1,7 @@
 5_Generate_NWI
 ================
 Inigo Peng
-2025-03-30
+2025-04-01
 
 - [Expand Climate Indicies](#expand-climate-indicies)
 - [Calculate NWI, normalized NWI and 2 week lag
@@ -17,9 +17,13 @@ previous Rmd. Inputs:
   (data/climate_indicies_data/normalized_climate_indicies.csv)
 - SWE (data/swe_data/swe_summary.csv)
 - UKLNI net inflow (data/ukr_net_inflow/net_inflow_export.csv)
+- Leap year period and non leap year period lookup (data/nwi_data)
 
 ``` r
 normalize <- function(x, min_val, max_val) {
+  if (isTRUE(all(c(x, min_val, max_val) == 0, na.rm = TRUE))) {
+    return(0)
+  }
   norm_value <- (x - min_val) / (max_val - min_val)
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
 }
@@ -77,7 +81,7 @@ model_weights <- read_csv(here::here("data/nwi_data/nwi_model_weights.csv")) |>
 prism_data <- read_csv(here::here("data/prism_data/prism_ppt_summary_export.csv")) |> glimpse()
 ```
 
-    ## Rows: 1636 Columns: 11
+    ## Rows: 1642 Columns: 11
     ## ── Column specification ────────────────────────────────────────────────────────
     ## Delimiter: ","
     ## dbl  (10): water_year, day_of_water_year, mean_total_daily_precip_ukl, mean_...
@@ -86,7 +90,7 @@ prism_data <- read_csv(here::here("data/prism_data/prism_ppt_summary_export.csv"
     ## ℹ Use `spec()` to retrieve the full column specification for this data.
     ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
-    ## Rows: 1,636
+    ## Rows: 1,642
     ## Columns: 11
     ## $ date                                                     <date> 2020-10-01, …
     ## $ water_year                                               <dbl> 2021, 2021, 2…
@@ -124,7 +128,7 @@ climate_indicies <- read_csv(here::here("data/climate_indicies_data/normalized_c
 swe <- read_csv(here::here("data/swe_data/swe_summary.csv")) |> glimpse()
 ```
 
-    ## Rows: 181 Columns: 13
+    ## Rows: 200 Columns: 13
     ## ── Column specification ────────────────────────────────────────────────────────
     ## Delimiter: ","
     ## dbl  (10): water_year, day_of_water_year, ukl_huc8_mean_swe, williamson_huc8...
@@ -134,16 +138,16 @@ swe <- read_csv(here::here("data/swe_data/swe_summary.csv")) |> glimpse()
     ## ℹ Use `spec()` to retrieve the full column specification for this data.
     ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
-    ## Rows: 181
+    ## Rows: 200
     ## Columns: 13
-    ## $ date                        <date> 2024-10-01, 2024-10-02, 2024-10-03, 2024-…
-    ## $ water_year                  <dbl> 2025, 2025, 2025, 2025, 2025, 2025, 2025, …
-    ## $ day_of_water_year           <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,…
-    ## $ ukl_huc8_mean_swe           <dbl> 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, …
-    ## $ williamson_huc8_mean_swe    <dbl> 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, …
-    ## $ sprague_huc8_mean_swe       <dbl> 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, …
-    ## $ weighted_average_swe        <dbl> 0.00000000, 0.00000000, 0.00000000, 0.0000…
-    ## $ normalized_average_swe      <dbl> 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, …
+    ## $ date                        <date> 2024-09-14, 2024-09-15, 2024-09-16, 2024-…
+    ## $ water_year                  <dbl> 2024, 2024, 2024, 2024, 2024, 2024, 2024, …
+    ## $ day_of_water_year           <dbl> 350, 351, 352, 353, 354, 355, 356, 357, 35…
+    ## $ ukl_huc8_mean_swe           <dbl> 0.00, 0.18, 0.16, 0.14, 0.16, 0.16, 0.16, …
+    ## $ williamson_huc8_mean_swe    <dbl> 0.000, 0.000, 0.000, 0.000, 0.000, 0.025, …
+    ## $ sprague_huc8_mean_swe       <dbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+    ## $ weighted_average_swe        <dbl> 0.00000000, 0.02487903, 0.02211470, 0.0193…
+    ## $ normalized_average_swe      <dbl> 0.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, …
     ## $ day_after_oct_15            <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
     ## $ oct_16_nov_30_linear_weight <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
     ## $ day_after_may_15_desc       <lgl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
@@ -154,7 +158,7 @@ swe <- read_csv(here::here("data/swe_data/swe_summary.csv")) |> glimpse()
 uklni_net_inflow <- read_csv(here::here("data/ukr_net_inflow/net_inflow_export.csv")) |> glimpse()
 ```
 
-    ## Rows: 16339 Columns: 6
+    ## Rows: 16346 Columns: 6
     ## ── Column specification ────────────────────────────────────────────────────────
     ## Delimiter: ","
     ## dbl  (5): water_year, day_of_water_year, ukl_net_inflow_smoothed, ukl_net_in...
@@ -163,7 +167,7 @@ uklni_net_inflow <- read_csv(here::here("data/ukr_net_inflow/net_inflow_export.c
     ## ℹ Use `spec()` to retrieve the full column specification for this data.
     ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
-    ## Rows: 16,339
+    ## Rows: 16,346
     ## Columns: 6
     ## $ date                                 <date> 1980-06-30, 1980-07-01, 1980-07-…
     ## $ water_year                           <dbl> 1980, 1980, 1980, 1980, 1980, 198…
@@ -171,6 +175,45 @@ uklni_net_inflow <- read_csv(here::here("data/ukr_net_inflow/net_inflow_export.c
     ## $ ukl_net_inflow_smoothed              <dbl> NA, 1.3168759, 1.1601920, 1.24303…
     ## $ ukl_net_inflow_30_d_trailing_sum_taf <dbl> NA, NA, NA, NA, NA, NA, NA, NA, N…
     ## $ normalized_30_d_trailing_sum_UKLNI   <dbl> NA, NA, NA, NA, NA, NA, NA, NA, N…
+
+``` r
+leap_year_period <- read_csv(here::here("data/nwi_data/leap_period_lookup.csv")) |> glimpse()
+```
+
+    ## Rows: 366 Columns: 4
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## Delimiter: ","
+    ## chr (1): lookup_date
+    ## dbl (3): day_of_water_year, period, lookup_month
+    ## 
+    ## ℹ Use `spec()` to retrieve the full column specification for this data.
+    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+    ## Rows: 366
+    ## Columns: 4
+    ## $ day_of_water_year <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1…
+    ## $ period            <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2…
+    ## $ lookup_date       <chr> "1-Oct", "2-Oct", "3-Oct", "4-Oct", "5-Oct", "6-Oct"…
+    ## $ lookup_month      <dbl> 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, …
+
+``` r
+non_leap_year_period <- read_csv(here::here("data/nwi_data/non_leap_period_lookup.csv")) |> glimpse()
+```
+
+    ## Rows: 365 Columns: 3
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## Delimiter: ","
+    ## chr (1): lookup_date
+    ## dbl (2): day_of_water_year, period
+    ## 
+    ## ℹ Use `spec()` to retrieve the full column specification for this data.
+    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+    ## Rows: 365
+    ## Columns: 3
+    ## $ day_of_water_year <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1…
+    ## $ period            <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2…
+    ## $ lookup_date       <chr> "1-Oct", "2-Oct", "3-Oct", "4-Oct", "5-Oct", "6-Oct"…
 
 Outputs:
 
@@ -211,16 +254,71 @@ expanded_climate_indicies <- climate_indicies |>
 
 ### Calculate NWI, normalized NWI and 2 week lag NWI
 
+$$
+WI_d = q_d Q_{d-1} + s_d S_{d-1} + pn_d PN_{d-1} + pl_d PL_{d-1} + c_d C_{m-1}
+$$
+
 ``` r
-nwi <-prism_data |>
+prism_data_edit <-prism_data |>
   filter(water_year >= start_year & date > start_date) |>
-  left_join(swe, by = c("date", "water_year", "day_of_water_year")) |>
   mutate(month = as.integer(format(date, "%m")),
          day = as.integer(format(date, "%d")),
          year = as.integer(format(date, "%Y")),
-         leap_year_index = if_else(leap_year(date), 1, 0),
-         period = as.integer(ceiling(day_of_water_year / 15))
-         ) |>
+         leap_year_index = if_else(leap_year(date), 1, 0)
+         )
+prism_leap <- prism_data_edit |> filter(leap_year_index == 1) |> 
+  left_join(leap_year_period, by = c("day_of_water_year")) |> 
+  dplyr::select(-c("lookup_date", "lookup_month")) |> glimpse()
+```
+
+    ## Rows: 108
+    ## Columns: 16
+    ## $ date                                                     <date> 2024-09-15, …
+    ## $ water_year                                               <dbl> 2024, 2024, 2…
+    ## $ day_of_water_year                                        <dbl> 351, 352, 353…
+    ## $ mean_total_daily_precip_ukl                              <dbl> 0.13176574, 0…
+    ## $ mean_total_daily_precip_williamson                       <dbl> 0.04834527, 0…
+    ## $ mean_total_daily_precip_sprague                          <dbl> 0.167011415, …
+    ## $ weighted_mean_total_daily_precipitation_ukl_catchment_in <dbl> 0.000, 0.115,…
+    ## $ thirty_d_trailing_sum_precip                             <dbl> 0.729, 0.842,…
+    ## $ normalized_30_trailing_sum_precipitation                 <dbl> 0.504, 0.500,…
+    ## $ trailing_sum_31_1095_d_precip_in                         <dbl> 69.493, 69.63…
+    ## $ normalized_trailing_sum_31_1095_d_precip_in              <dbl> 0.273, 0.280,…
+    ## $ month                                                    <int> 9, 9, 9, 9, 9…
+    ## $ day                                                      <int> 15, 16, 17, 1…
+    ## $ year                                                     <int> 2024, 2024, 2…
+    ## $ leap_year_index                                          <dbl> 1, 1, 1, 1, 1…
+    ## $ period                                                   <dbl> 24, 24, 24, 2…
+
+``` r
+prism_non_leap <- prism_data_edit |> filter(leap_year_index == 0) |> 
+  left_join(non_leap_year_period, by = c("day_of_water_year")) |> 
+  dplyr::select(-c("lookup_date")) |> glimpse()
+```
+
+    ## Rows: 89
+    ## Columns: 16
+    ## $ date                                                     <date> 2025-01-01, …
+    ## $ water_year                                               <dbl> 2025, 2025, 2…
+    ## $ day_of_water_year                                        <dbl> 93, 94, 95, 9…
+    ## $ mean_total_daily_precip_ukl                              <dbl> 0.7009869908,…
+    ## $ mean_total_daily_precip_williamson                       <dbl> 0.453922825, …
+    ## $ mean_total_daily_precip_sprague                          <dbl> 0.3196992048,…
+    ## $ weighted_mean_total_daily_precipitation_ukl_catchment_in <dbl> 0.278, 0.444,…
+    ## $ thirty_d_trailing_sum_precip                             <dbl> 7.166, 7.608,…
+    ## $ normalized_30_trailing_sum_precipitation                 <dbl> 0.610, 0.601,…
+    ## $ trailing_sum_31_1095_d_precip_in                         <dbl> 67.442, 67.42…
+    ## $ normalized_trailing_sum_31_1095_d_precip_in              <dbl> 0.205, 0.207,…
+    ## $ month                                                    <int> 1, 1, 1, 1, 1…
+    ## $ day                                                      <int> 1, 2, 3, 4, 5…
+    ## $ year                                                     <int> 2025, 2025, 2…
+    ## $ leap_year_index                                          <dbl> 0, 0, 0, 0, 0…
+    ## $ period                                                   <dbl> 7, 7, 7, 7, 7…
+
+``` r
+prism_full <- bind_rows(prism_leap, prism_non_leap) |> arrange(date)
+nwi <- prism_full |> 
+  left_join(swe, by = c("date", "water_year", "day_of_water_year")) |>
   left_join(uklni_net_inflow, by = c("date", "day_of_water_year", "water_year")) |>
   left_join(expanded_climate_indicies, by=c("date", "month", "year")) |>
   mutate(day_of_water_year = as.integer(day_of_water_year)) |>
@@ -242,6 +340,12 @@ nwi <-prism_data |>
   rowwise() |>
   mutate(normalized_wetness_index_v20 = round(normalize(wetness_index_v20, min_nwi_v20, max_nwi_v20), 3)) |>
   ungroup() |>
+  mutate(
+    normalized_wetness_index_v20 = if_else(
+      day_of_water_year == 366, lag(normalized_wetness_index_v20),
+      normalized_wetness_index_v20
+    )
+  ) |> 
   mutate(trailing_2_week_mean_nwi_v20 = round(zoo::rollmean(normalized_wetness_index_v20, k=14, fill=NA, align = "right"), 3))
 nwi_cleaned <- nwi[,c("date", "month", "day", "year", "day_of_water_year", "leap_year_index",
        "period",
@@ -262,5 +366,5 @@ nwi_cleaned <- nwi[,c("date", "month", "day", "year", "day_of_water_year", "leap
        "normalized_wetness_index_v20",
        "trailing_2_week_mean_nwi_v20",
        "ukl_net_inflow_smoothed")]
-write_csv(nwi_cleaned, here::here("data/nwi_data/nwi_cleaned.csv"))
+write_csv(nwi_cleaned, here::here("data/nwi_data/nwi_export.csv"))
 ```
