@@ -41,11 +41,11 @@ Outputs:
 * PPT, Tmean, Tmax summarized data (data/prism_data/prism_summary.csv)
 
 TODOs:
-* Decide on start date and end date for Prism time series data. Default start date is 15 days before current date. Default end date is current date.
+* Decide on start date and end date for Prism time series data. Default start date is 16 days before current date. Default end date is one day before current date.
 * Decide on download location director - downloading historical files could add up so make sure there's enough disk space. If choosing a separate directory, make sure its structured as ".../Prism_Files/{element}/
 * If downloading historic data, only need PPT.
 
-Note: also first time generation will need historic data (back to Oct 2020) to generate the values for `trailing_sum_31_1095_d_precip_in`. This takes a long time to download and process 4 + years of data.
+Note: also first time generation will need historic data (back to Oct 2020) to generate the values for `trailing_sum_31_1095_d_precip_in`. This takes a long time to download and process 4 + years of data. I have included the downloaded and extracted data from 2020 until  
 
 ```{r}
 prism_start_date = Sys.Date() - 16
@@ -124,12 +124,25 @@ for (element in element_list){
 
 ### Download extract PPT data
 ```{r}
-ppt_long_data <- prism_ppt_data |>
+ppt_long_recent_data <- prism_ppt_data |>
   dplyr::select(-c(longitude, latitude)) |>
-  pivot_longer(!name, names_to = "date", values_to = "ppt")
-write_csv(ppt_long_data, here::here("data/prism_data/prism_ppt_download.csv"))
+  pivot_longer(!name, names_to = "date", values_to = "ppt") |> 
+  mutate(date = as.Date(date)) |> glimpse()
+write_csv(ppt_long_recent_data, here::here("data/prism_data/recent_prism_ppt_download.csv"))
 ```
 
+### Bind historic data with recent data
+Recent data value of the same date replaces historic data values
+```{r}
+ppt_long_historic_data <- read_csv(here::here("data/prism_data/historic_prism_ppt_download.csv"))
+ppt_long_data <- full_join(
+  ppt_long_recent_data, ppt_long_historic_data,
+  by = c("date", "name") ,
+  suffix = c("_recent", "_historic")) |> 
+  mutate(ppt = coalesce(ppt_recent, ppt_historic)) |> 
+  dplyr::select(c("date", "name", "ppt")) |> 
+  arrange(date) |> glimpse()
+```
 ### Generate data PPT data summaries, normalized values 
 ```{r}
 ppt_data_summary <- ppt_long_data |>
@@ -167,7 +180,7 @@ ppt_data_summary <- ppt_long_data |>
                                                                     max_30_trailing_sum_ppt), 3))|>
   ungroup() |>
   # dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) |>
-  mutate(date = as.Date(date, format= "%Y-%m-%d"))
+  mutate(date = as.Date(date, format= "%Y-%m-%d")) |> glimpse()
 
 ppt_data_export <- ppt_data_summary |>
   arrange(date) |>
@@ -182,7 +195,7 @@ ppt_data_export <- ppt_data_summary |>
                                                             max_of_31_1095_d_trailing_sum_ppt), 3)
   ) |>
   ungroup() |>
-  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt, start_date, end_date))
+  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt, start_date, end_date)) |> glimpse()
 
 write_csv(ppt_data_export, here::here("data/prism_data/prism_ppt_summary_export.csv"))
 ```
@@ -200,7 +213,7 @@ full_download_data <- ppt_long_data |>
   full_join(tmean_long_data, by = c("name", "date")) |>
   full_join(tmax_long_data, by = c("name", "date")) |>
   mutate(across(where(is.numeric), ~ round(.x, 3)))
-write_csv(full_download_data, here::here("data/prism_data/prism_download.csv"))
+write_csv(full_download_data, here::here("data/prism_data/prism_ppt_tmean_tmax_download.csv"))
 ```
 
 ```{r}
