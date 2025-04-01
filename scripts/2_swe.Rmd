@@ -97,6 +97,10 @@ write_csv(full_swe_df, here::here("data/swe_data/swe_download.csv"))
 ### Calculate basin averages, weighted averaged, and normalized values
 ```{r}
 normalize <- function(x, min_val, max_val) {
+  if (isTRUE(all(c(x, min_val, max_val) == 0, na.rm = TRUE))) {
+    return(0)
+  }
+  
   norm_value <- (x - min_val) / (max_val - min_val)
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
 }
@@ -143,6 +147,12 @@ swe_summary <- full_swe_df |>
                                                   min_weighted_average_swe_in, 
                                                   max_weighted_average_swe_in), 2))|>
   ungroup() |> 
+  mutate(
+    normalized_average_swe = if_else(
+      day_of_water_year == 366, lag(normalized_average_swe),
+      normalized_average_swe
+    )
+  ) |> 
   mutate(
     day_after_oct_15 = as.integer(difftime(Date, ymd(paste0(year(Date), "-10-15")), units = "days")),
     day_after_oct_15 = ifelse(Date > ymd(paste0(year(Date), "-11-30")) | day_after_oct_15 < 1, NA, day_after_oct_15),
