@@ -180,7 +180,12 @@ ppt_data_summary <- ppt_long_data |>
                                                                     min_30_trailing_sum_ppt,
                                                                     max_30_trailing_sum_ppt), 3))|>
   ungroup() |>
-  # dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) |>
+  mutate(
+    normalized_30_trailing_sum_precipitation = if_else(
+      day_of_water_year == 366, lag(normalized_30_trailing_sum_precipitation),
+      normalized_30_trailing_sum_precipitation
+    )
+  ) |> 
   mutate(date = as.Date(date, format= "%Y-%m-%d")) |> glimpse()
 
 ppt_data_export <- ppt_data_summary |>
@@ -196,6 +201,12 @@ ppt_data_export <- ppt_data_summary |>
                                                             max_of_31_1095_d_trailing_sum_ppt), 3)
   ) |>
   ungroup() |>
+  mutate(
+    normalized_trailing_sum_31_1095_d_precip_in = if_else(
+      day_of_water_year == 366, lag(normalized_trailing_sum_31_1095_d_precip_in),
+      normalized_trailing_sum_31_1095_d_precip_in
+    )
+  ) |> 
   dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt, start_date, end_date)) |> glimpse()
 
 write_csv(ppt_data_export, here::here("data/prism_data/prism_ppt_summary_export.csv"))
