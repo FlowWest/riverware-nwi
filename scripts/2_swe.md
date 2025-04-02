@@ -154,7 +154,6 @@ normalize <- function(x, min_val, max_val) {
   if (isTRUE(all(c(x, min_val, max_val) == 0, na.rm = TRUE))) {
     return(0)
   }
-  
   norm_value <- (x - min_val) / (max_val - min_val)
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
 }
@@ -200,11 +199,11 @@ swe_summary <- full_swe_df |>
   mutate(normalized_average_swe = round(normalize(weighted_average_swe, 
                                                   min_weighted_average_swe_in, 
                                                   max_weighted_average_swe_in), 2))|>
-  ungroup() |> 
+  ungroup() |>
   mutate(
-    normalized_average_swe = if_else(
-      day_of_water_year == 366, lag(normalized_average_swe),
-      normalized_average_swe
+    normalized_average_swe = case_when(
+      day_of_water_year == 366 ~ lag(normalized_average_swe),
+      .default = normalized_average_swe
     )
   ) |> 
   mutate(

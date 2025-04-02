@@ -89,7 +89,8 @@ nwi <- prism_full |>
   left_join(swe, by = c("date", "water_year", "day_of_water_year")) |>
   left_join(uklni_net_inflow, by = c("date", "day_of_water_year", "water_year")) |>
   left_join(expanded_climate_indicies, by=c("date", "month", "year")) |>
-  mutate(day_of_water_year = as.integer(day_of_water_year)) |>
+  mutate(day_of_water_year = as.integer(day_of_water_year),
+         normalized_average_swe = if_else(day_of_water_year < 16 | (month > 6 & month <=9), 0, normalized_average_swe)) |>
   left_join(model_weights, by = c("period")) |>
   mutate(weight_for_30_d_trailing_sum_UKLNI = round(day_of_water_year*wi_slope + wi_intercept, 3),
          weight_for_30_d_trailing_sum_precip = round(day_of_water_year*wp_30_slope + wp_30_intercept, 3),
@@ -115,7 +116,6 @@ nwi <- prism_full |>
     )
   ) |> 
   mutate(trailing_2_week_mean_nwi_v20 = round(zoo::rollmean(normalized_wetness_index_v20, k=14, fill=NA, align = "right"), 3))
-
 nwi_cleaned <- nwi[,c("date", "month", "day", "year", "day_of_water_year", "leap_year_index",
        "period",
        "normalized_30_d_trailing_sum_UKLNI",
