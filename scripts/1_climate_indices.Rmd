@@ -110,9 +110,18 @@ normalize <- function(x, min_val, max_val) {
 
 colnames(normalizing_values) <- tolower(colnames(normalizing_values))
 
+df_date_lag <- clean_n34_df |>
+  mutate(date = as.Date(paste0(index, "-01")) %m+% months(1)) |> 
+  dplyr::select(date)
+
+clean_pdo_df_date <- clean_pdo_df |> 
+  mutate(date = as.Date(paste0(index, "-01")))
+
 full_normalized_df <- clean_n34_df|>
+  mutate(date = as.Date(paste0(index, "-01"))) |>
+  full_join(df_date_lag) |> 
   left_join(normalizing_values, by = "month")|>
-  left_join(clean_pdo_df, by = c("month", "index", "Year")) |>
+  left_join(clean_pdo_df_date, by = c("month", "index", "Year","date")) |>
   rowwise()|>
   mutate(normalized_CN34 = round(1 - normalize(N34, minimum_of_n34, maximum_of_n34), 3),
          normalized_pdo = round(normalize(PDO, minimum_of_pdo, maximum_of_pdo), 3),
@@ -126,10 +135,21 @@ full_normalized_df <- clean_n34_df|>
     three_mta_normalized_PDO_lag_0 = lag(three_mta_normalized_PDO, n=1),
     three_mta_normalized_PDO_CN34_lag_0 = lag(three_mta_normalized_PDO_CN34, n=1)
   ) |> 
-  dplyr::select(index, Year, month, N34, normalized_CN34, PDO, normalized_pdo, combined_pdo_cn34, normalized_pdo_cn34, three_mta_normalized_PDO, three_mta_normalized_PDO_CN34,three_mta_normalized_PDO_lag_0, three_mta_normalized_PDO_CN34_lag_0) |> 
-  rename(date=index,
-         year=Year) 
-  # mutate(date = as.Date(date)) |> glimpse()
+  rename(year=Year) |> glimpse()
 
-write.csv(full_normalized_df, here::here("data/climate_indicies_data/normalized_climate_indicies.csv"), row.names = FALSE)
+cleaned_normalized_climate_indicies <- full_normalized_df[,c("date",
+                                                          "year",
+                                                          "month",
+                                                          "PDO",
+                                                          "normalized_pdo",
+                                                          "N34",
+                                                          "normalized_CN34",
+                                                          "combined_pdo_cn34",
+                                                          "normalized_pdo_cn34",
+                                                          "three_mta_normalized_PDO",
+                                                          "three_mta_normalized_PDO_CN34",
+                                                          "three_mta_normalized_PDO_lag_0",
+                                                          "three_mta_normalized_PDO_CN34_lag_0")]
+
+write.csv(cleaned_normalized_climate_indicies, here::here("data/climate_indicies_data/normalized_climate_indicies.csv"), row.names = FALSE)
 ```

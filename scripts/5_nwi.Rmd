@@ -37,7 +37,7 @@ nwi_min_max <- read_csv(here::here("data/nwi_data/nwi_min_max.csv")) |> glimpse(
 model_weights <- read_csv(here::here("data/nwi_data/nwi_model_weights.csv")) |> 
   dplyr::select(-c("date", "day_of_water_year")) |> glimpse()
 prism_data <- read_csv(here::here("data/prism_data/prism_ppt_summary_export.csv")) |> glimpse()
-climate_indicies <- read_csv(here::here("data/climate_indicies_data/normalized_climate_indicies.csv"), col_types = cols(date=col_date(format = "%Y-%m"))) |> glimpse()
+climate_indicies <- read_csv(here::here("data/climate_indicies_data/normalized_climate_indicies.csv")) |> glimpse()
 swe <- read_csv(here::here("data/swe_data/swe_summary.csv")) |> glimpse()
 uklni_net_inflow <- read_csv(here::here("data/ukr_net_inflow/net_inflow_export.csv")) |> glimpse()
 leap_year_period <- read_csv(here::here("data/nwi_data/leap_period_lookup.csv")) |> glimpse()
@@ -60,7 +60,9 @@ start_date <- as.Date(paste0(year(Sys.Date()) - 1, "-09-14"))
 expanded_climate_indicies <- climate_indicies |>
   rowwise() %>%
   mutate(date = list(seq.Date(date, ceiling_date(date, "month") - days(1), by = "day"))) |>
-  unnest(date) |> glimpse()
+  unnest(date) |> 
+  mutate(year = as.integer(format(date, "%Y")),
+         month = as.integer(format(date, "%m")))
 ```
 
 ### Calculate NWI, normalized NWI and 2 week lag NWI
@@ -69,7 +71,7 @@ WI_d = q_d Q_{d-1} + s_d S_{d-1} + pn_d PN_{d-1} + pl_d PL_{d-1} + c_d C_{m-1}
 $$
 ```{r}
 prism_data_edit <-prism_data |>
-  filter(water_year >= start_year & date > start_date) |>
+  filter(water_year >= start_year & date > start_date) |> 
   mutate(month = as.integer(format(date, "%m")),
          day = as.integer(format(date, "%d")),
          year = as.integer(format(date, "%Y")),
@@ -113,6 +115,7 @@ nwi <- prism_full |>
     )
   ) |> 
   mutate(trailing_2_week_mean_nwi_v20 = round(zoo::rollmean(normalized_wetness_index_v20, k=14, fill=NA, align = "right"), 3))
+
 nwi_cleaned <- nwi[,c("date", "month", "day", "year", "day_of_water_year", "leap_year_index",
        "period",
        "normalized_30_d_trailing_sum_UKLNI",
