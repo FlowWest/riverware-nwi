@@ -60,6 +60,7 @@ local_dir <- here::here("data-raw/")
 
 ### Prism Data Download
 ```{r}
+#TRY WITH HTTR
 normalize <- function(x, min_val, max_val) {
   norm_value <- (x - min_val) / (max_val - min_val)
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
