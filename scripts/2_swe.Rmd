@@ -17,7 +17,6 @@ library(tidyverse)
 library(lubridate)
 library(zoo)
 library(dplyr)
-library(here)
 ```
 
 This R Markdown script is used to generate SWE inputs for NWI. 
