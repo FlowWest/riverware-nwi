@@ -50,8 +50,10 @@ TODOs:
 Note: also first time generation will need historic data (back to Oct 2020) to generate the values for `trailing_sum_31_1095_d_precip_in`. This takes a long time to download and process 4 + years of data. I have included the downloaded and extracted data from 2020 until  
 
 ```{r}
-prism_start_date = Sys.Date() - 16
-prism_end_date = Sys.Date() - 1
+# prism_start_date = Sys.Date() - 16
+prism_start_date = as.Date("2025-2-01")
+prism_end_date = as.Date("2025-2-10")
+# prism_end_date = Sys.Date() - 1
 # element_list <- c("ppt", "tmean", "tmax")
 element_list <- c("ppt")
 # local_dir <- "Z:/Shared/Active_Projects/083-02_SDM_Support_Base_Year/Modeling/NWI"
@@ -60,7 +62,6 @@ local_dir <- here::here("data-raw/")
 
 ### Prism Data Download
 ```{r}
-#TRY WITH HTTR
 normalize <- function(x, min_val, max_val) {
   norm_value <- (x - min_val) / (max_val - min_val)
   return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
@@ -85,7 +86,8 @@ for (element in element_list){
 ```
 ```{r}
 for (element in element_list){
-  nc_files <- list.files(path = paste0(local_dir,"/Prism_Files/", element), pattern = "*.zip", full.names = TRUE)
+  #TODO errors out on unzipped folder
+  # nc_files <- list.files(path = paste0(local_dir,"/Prism_Files/", element), pattern = "\\.zip$", full.names = TRUE)
   for (file in nc_files){
     print(file)
     date_str <- str_extract(file, "[0-9]{8}")
@@ -147,7 +149,7 @@ ppt_long_data <- full_join(
   suffix = c("_recent", "_historic")) |> 
   mutate(ppt = coalesce(ppt_recent, ppt_historic)) |> 
   dplyr::select(c("date", "name", "ppt")) |> 
-  arrange(date) |> glimpse()
+  arrange(date)
 ```
 ### Generate data PPT data summaries, normalized values 
 ```{r}
@@ -173,17 +175,17 @@ ppt_data_summary <- ppt_long_data |>
   ) |>
   relocate("mean_total_daily_precip_sprague", .after = "mean_total_daily_precip_williamson") |>
   relocate(c("water_year", "day_of_water_year"), .after = "date") |>
-  mutate(weighted_mean_total_daily_precipitation_ukl_catchment_in = lag(round(
+  mutate(weighted_mean_total_daily_precipitation_ukl_catchment_in = lag(
          (mean_total_daily_precip_ukl*snotel_area$`Proportion of total area`[1] +
          mean_total_daily_precip_williamson*snotel_area$`Proportion of total area`[2]+
-         mean_total_daily_precip_sprague*snotel_area$`Proportion of total area`[3]), 3), 1, default = 0),
-         thirty_d_trailing_sum_precip = round(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"), 3)
+         mean_total_daily_precip_sprague*snotel_area$`Proportion of total area`[3]), 1, default = 0),
+         thirty_d_trailing_sum_precip = rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 31, fill=NA, align = "right")
          ) |>
   left_join(min_max_ppt, by = "day_of_water_year") |>
   rowwise()|>
-  mutate(normalized_30_trailing_sum_precipitation = round(normalize(thirty_d_trailing_sum_precip,
+  mutate(normalized_30_trailing_sum_precipitation = normalize(thirty_d_trailing_sum_precip,
                                                                     min_30_trailing_sum_ppt,
-                                                                    max_30_trailing_sum_ppt), 3))|>
+                                                                    max_30_trailing_sum_ppt))|>
   ungroup() |>
   mutate(
     normalized_30_trailing_sum_precipitation = if_else(
@@ -191,19 +193,32 @@ ppt_data_summary <- ppt_long_data |>
       normalized_30_trailing_sum_precipitation
     )
   ) |> 
-  mutate(date = as.Date(date, format= "%Y-%m-%d")) |> glimpse()
+  mutate(date = as.Date(date, format= "%Y-%m-%d"))
+
 
 ppt_data_export <- ppt_data_summary |>
   arrange(date) |>
   rowwise() |>
   mutate(
-    start_date = date %m-% years(3),
-    end_date = date %m-% months(1) - days(1),
-    trailing_sum_31_1095_d_precip_in
-    = sum(ppt_data_summary$weighted_mean_total_daily_precipitation_ukl_catchment_in[ppt_data_summary$date >= start_date & ppt_data_summary$date <= end_date], na.rm = TRUE),
-    normalized_trailing_sum_31_1095_d_precip_in = round(normalize(trailing_sum_31_1095_d_precip_in,
+    trailing_sum_31_1095_d_precip_in = purrr::map_dbl(date, function(d) {
+      lag_end <- d %m-% months(1) - days(1)
+      lag_start <- lag_end - days(1064 - 1)
+      
+      vals <- ppt_data_summary$weighted_mean_total_daily_precipitation_ukl_catchment_in[
+        ppt_data_summary$date >= lag_start & ppt_data_summary$date <= lag_end
+      ]
+      
+      if (length(vals) == 1064) {
+        sum(vals, na.rm = TRUE)
+      } else {
+        NA_real_
+      }
+    })
+  ) |> 
+mutate(
+    normalized_trailing_sum_31_1095_d_precip_in = normalize(trailing_sum_31_1095_d_precip_in,
                                                             min_31_1095_d_trailing_sum_ppt,
-                                                            max_of_31_1095_d_trailing_sum_ppt), 3)
+                                                            max_of_31_1095_d_trailing_sum_ppt)
   ) |>
   ungroup() |>
   mutate(
@@ -212,7 +227,7 @@ ppt_data_export <- ppt_data_summary |>
       normalized_trailing_sum_31_1095_d_precip_in
     )
   ) |> 
-  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt, start_date, end_date)) |> glimpse()
+  dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) 
 
 write_csv(ppt_data_export, here::here("data/prism_data/prism_ppt_summary_export.csv"))
 ```
@@ -228,8 +243,8 @@ tmax_long_data <- prism_tmax_data |>
   pivot_longer(!name, names_to = "date", values_to = "tmax")
 full_download_data <- ppt_long_data |>
   full_join(tmean_long_data, by = c("name", "date")) |>
-  full_join(tmax_long_data, by = c("name", "date")) |>
-  mutate(across(where(is.numeric), ~ round(.x, 3)))
+  full_join(tmax_long_data, by = c("name", "date"))
+  # mutate(across(where(is.numeric), ~ round(.x, 3)))
 write_csv(full_download_data, here::here("data/prism_data/prism_ppt_tmean_tmax_download.csv"))
 ```
 
@@ -256,7 +271,7 @@ tmax_data_summary <- tmax_long_data |>
 
 summary_data <- ppt_data_summary |>
   full_join(tmean_data_summary, by = c("date")) |>
-  full_join(tmax_data_summary, by = c("date")) |>
-  mutate(across(where(is.numeric), ~ round(.x, 3)))
+  full_join(tmax_data_summary, by = c("date"))
+  # mutate(across(where(is.numeric), ~ round(.x, 3)))
 write_csv(summary_data, here::here("data/prism_data/prism_summary.csv"))
 ```
