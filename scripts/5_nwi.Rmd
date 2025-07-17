@@ -98,7 +98,7 @@ nwi <- prism_full |>
          weight_for_tot_31_1095_d_trailing_sum_precip = day_of_water_year*wp_1095_slope + wp_1095_intercept,
          weight_for_normalized_weighted_avg_swe = day_of_water_year*ws_slope + ws_intercept,
          weight_for_climate_index = day_of_water_year*wc_slope + wc_intercept,
-         climate_index_lag_0 = ifelse(climate_index_used == "3 mta PDO_CN34", three_mta_normalized_PDO_CN34_lag_0, three_mta_normalized_PDO_lag_0),
+         climate_index_lag_0 = ifelse(climate_index_used == "3 mta PDO_CN34", normalized_3mta_normalized_PDO_CN34_lag_0, normalized_3mta_normalized_PDO_lag_0),
          wetness_index_v20 =
            normalized_30_d_trailing_sum_UKLNI*weight_for_30_d_trailing_sum_UKLNI +
            normalized_30_trailing_sum_precipitation*weight_for_30_d_trailing_sum_precip +
@@ -127,8 +127,8 @@ nwi_cleaned <- nwi[,c("date", "month", "day", "year", "day_of_water_year", "leap
        "weight_for_tot_31_1095_d_trailing_sum_precip",
        "normalized_average_swe",
        "weight_for_normalized_weighted_avg_swe",
-       "three_mta_normalized_PDO_lag_0",
-       "three_mta_normalized_PDO_CN34_lag_0",
+       "normalized_3mta_normalized_PDO_lag_0",
+       "normalized_3mta_normalized_PDO_CN34_lag_0",
        "climate_index_used",
        "climate_index_lag_0",
        "weight_for_climate_index",

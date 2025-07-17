@@ -26,6 +26,7 @@ Inputs:
 
 ```{r}
 normalizing_values <- read_csv(here::here( "data/climate_indicies_data/min_max_pdo_n34.csv"))
+three_mta_norm_values <- read_csv(here::here("data/climate_indicies_data/normalizedsheet.csv"))
 ```
 Outputs: 
 
@@ -121,19 +122,26 @@ full_normalized_df <- clean_n34_df|>
   mutate(date = as.Date(paste0(index, "-01"))) |>
   full_join(df_date_lag) |> 
   left_join(normalizing_values, by = "month")|>
+  left_join(three_mta_norm_values, by="month") |> 
   left_join(clean_pdo_df_date, by = c("month", "index", "Year","date")) |>
   rowwise()|>
-  mutate(normalized_CN34 = round(1 - normalize(N34, minimum_of_n34, maximum_of_n34), 3),
-         normalized_pdo = round(normalize(PDO, minimum_of_pdo, maximum_of_pdo), 3),
+  mutate(normalized_CN34 = 1 - normalize(N34, minimum_of_n34, maximum_of_n34),
+         normalized_pdo = normalize(PDO, minimum_of_pdo, maximum_of_pdo),
          combined_pdo_cn34 = normalized_CN34 + normalized_pdo,
-         normalized_pdo_cn34 = round(normalize(combined_pdo_cn34, minimum_of_pdo_cn34, maximum_of_pdo_cn34), 3)
+         normalized_pdo_cn34 = normalize(combined_pdo_cn34, minimum_of_pdo_cn34, maximum_of_pdo_cn34)
          ) |> 
   ungroup() |> 
   mutate(
-    three_mta_normalized_PDO = round(rollmean(normalized_pdo, k = 3, fill=NA, align = "right"), 3),
-    three_mta_normalized_PDO_CN34 = round(rollmean(normalized_pdo_cn34, k = 3, fill = NA, align = "right"), 3),
-    three_mta_normalized_PDO_lag_0 = lag(three_mta_normalized_PDO, n=1),
-    three_mta_normalized_PDO_CN34_lag_0 = lag(three_mta_normalized_PDO_CN34, n=1)
+    three_mta_normalized_PDO = rollmean(normalized_pdo, k = 3, fill=NA, align = "right"),
+    three_mta_normalized_PDO_CN34 = rollmean(normalized_pdo_cn34, k = 3, fill = NA, align = "right")) |>
+  rowwise() |>
+  mutate(
+    normalized_3mta_normalized_PDO = normalize(three_mta_normalized_PDO, min_3mta_norm_PDO, max_3mta_norm_PDO),
+    normalized_3mta_normalized_PDO_CN34 = normalize(three_mta_normalized_PDO_CN34, min_3mta_norm_PDO_CN34, max_3mta_norm_PDO_CN34)) |>  
+  ungroup() |>  
+  mutate(
+    normalized_3mta_normalized_PDO_lag_0 = lag(normalized_3mta_normalized_PDO, n=1),
+    normalized_3mta_normalized_PDO_CN34_lag_0 = lag(normalized_3mta_normalized_PDO_CN34, n=1)
   ) |> 
   rename(year=Year) |> glimpse()
 
@@ -147,9 +155,11 @@ cleaned_normalized_climate_indicies <- full_normalized_df[,c("date",
                                                           "combined_pdo_cn34",
                                                           "normalized_pdo_cn34",
                                                           "three_mta_normalized_PDO",
-                                                          "three_mta_normalized_PDO_CN34",
-                                                          "three_mta_normalized_PDO_lag_0",
-                                                          "three_mta_normalized_PDO_CN34_lag_0")]
+                                                          "three_mta_normalized_PDO_CN34",   
+"normalized_3mta_normalized_PDO",
+"normalized_3mta_normalized_PDO_CN34",
+"normalized_3mta_normalized_PDO_lag_0",
+"normalized_3mta_normalized_PDO_CN34_lag_0")]
 
 write.csv(cleaned_normalized_climate_indicies, here::here("data/climate_indicies_data/normalized_climate_indicies.csv"), row.names = FALSE)
 ```

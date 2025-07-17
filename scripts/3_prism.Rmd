@@ -51,9 +51,9 @@ Note: also first time generation will need historic data (back to Oct 2020) to g
 
 ```{r}
 # prism_start_date = Sys.Date() - 16
-prism_start_date = as.Date("2025-2-01")
-prism_end_date = as.Date("2025-2-10")
-# prism_end_date = Sys.Date() - 1
+prism_start_date = as.Date("2025-3-31")
+# prism_end_date = as.Date("2025-2-10")
+prism_end_date = Sys.Date() - 1
 # element_list <- c("ppt", "tmean", "tmax")
 element_list <- c("ppt")
 # local_dir <- "Z:/Shared/Active_Projects/083-02_SDM_Support_Base_Year/Modeling/NWI"
@@ -87,7 +87,7 @@ for (element in element_list){
 ```{r}
 for (element in element_list){
   #TODO errors out on unzipped folder
-  # nc_files <- list.files(path = paste0(local_dir,"/Prism_Files/", element), pattern = "\\.zip$", full.names = TRUE)
+  nc_files <- list.files(path = paste0(local_dir,"/Prism_Files/", element), pattern = "\\.zip$", full.names = TRUE)
   for (file in nc_files){
     print(file)
     date_str <- str_extract(file, "[0-9]{8}")
@@ -139,12 +139,18 @@ ppt_long_recent_data <- prism_ppt_data |>
   mutate(date = as.Date(date)) |> glimpse()
 write_csv(ppt_long_recent_data, here::here("data/prism_data/recent_prism_ppt_download.csv"))
 ```
-
+```{r}
+ppt_archival <- read_csv(here::here("data/prism_data/archive_prism.csv")) |> 
+  pivot_longer(!Date, names_to = "name", values_to = "ppt") |> 
+  mutate(date = as.Date(Date, format = "%m/%d/%Y")) |> 
+  dplyr::select(-("Date")) |> glimpse()
+```
 ### Bind historic data with recent data
 Recent data value of the same date replaces historic data values
 ```{r}
 ppt_long_data <- full_join(
-  ppt_long_recent_data, ppt_long_historic_data,
+  # ppt_long_recent_data, ppt_long_historic_data,
+  ppt_archival, ppt_long_historic_data,
   by = c("date", "name") ,
   suffix = c("_recent", "_historic")) |> 
   mutate(ppt = coalesce(ppt_recent, ppt_historic)) |> 
@@ -179,7 +185,7 @@ ppt_data_summary <- ppt_long_data |>
          (mean_total_daily_precip_ukl*snotel_area$`Proportion of total area`[1] +
          mean_total_daily_precip_williamson*snotel_area$`Proportion of total area`[2]+
          mean_total_daily_precip_sprague*snotel_area$`Proportion of total area`[3]), 1, default = 0),
-         thirty_d_trailing_sum_precip = rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 31, fill=NA, align = "right")
+         thirty_d_trailing_sum_precip = lag(rollsum(weighted_mean_total_daily_precipitation_ukl_catchment_in, k = 30, fill=NA, align = "right"))
          ) |>
   left_join(min_max_ppt, by = "day_of_water_year") |>
   rowwise()|>
@@ -229,7 +235,7 @@ mutate(
   ) |> 
   dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) 
 
-write_csv(ppt_data_export, here::here("data/prism_data/prism_ppt_summary_export.csv"))
+write_csv(ppt_data_export, here::here("data/prism_data/archival_prism_ppt_summary_export.csv"))
 ```
 
 ### Run these chunks if downloaded Tmean and Tmax Data
