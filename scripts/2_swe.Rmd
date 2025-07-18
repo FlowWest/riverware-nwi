@@ -146,10 +146,16 @@ swe_summary <- full_swe_df |>
                                                   min_weighted_average_swe_in, 
                                                   max_weighted_average_swe_in))|>
   ungroup() |>
+  group_by(water_year) |> 
   mutate(
+    swe_may15 = normalized_average_swe[
+      month(Date) == 5 & day(Date) == 15
+    ][1],
     normalized_average_swe = case_when(
       day_of_water_year == 366 ~ lag(normalized_average_swe),
-      .default = normalized_average_swe
+      Date >= ymd(paste0(water_year - 1, "-05-16")) &
+      Date <= ymd(paste0(water_year - 1, "-06-30")) ~ swe_may15,
+      TRUE ~ normalized_average_swe
     )
   ) |> 
   mutate(
@@ -160,8 +166,8 @@ swe_summary <- full_swe_df |>
     day_after_may_15_desc = ifelse(Date > ymd(paste0(year(Date), "-6-30")) | Date < ymd(paste0(year(Date), "-5-16")), NA, day_after_may_15_desc),
     may_16_jun_30_linear_weight = day_after_may_15_desc * (1/46),
     normalized_weighted_avg_swe = case_when(!is.na(day_after_oct_15) ~ normalized_average_swe * oct_16_nov_30_linear_weight,
-                                            !is.na(day_after_may_15_desc) ~ normalized_average_swe * may_16_jun_30_linear_weight,
-                                            .default = NA)) |> 
+                                            !is.na(day_after_may_15_desc) ~ swe_may15 * may_16_jun_30_linear_weight,
+                                            .default = normalized_average_swe)) |> 
   dplyr::select(-c(min_weighted_average_swe_in, 
             max_weighted_average_swe_in, 
             max_weighted_normalized_average_swe, 
@@ -182,8 +188,9 @@ swe_summary <- full_swe_df |>
     `Taylor Butte SWE (in)`,
     `Summer Rim SWE (in)`,
     `Quartz Mountain SWE (in)`,
-    `Strawberry SWE (in)`
-      )) |> glimpse()
+    `Strawberry SWE (in)`,
+    swe_may15
+      ))
   
 
 write.csv(swe_summary, here::here("data/swe_data/swe_summary.csv"), row.names = FALSE)

@@ -92,7 +92,8 @@ nwi <- prism_full |>
   left_join(uklni_net_inflow, by = c("date", "day_of_water_year", "water_year")) |>
   left_join(expanded_climate_indicies, by=c("date", "month", "year")) |>
   mutate(day_of_water_year = as.integer(day_of_water_year),
-         normalized_weighted_avg_swe = if_else(day_of_water_year < 16 | (month > 6 & month <=9), 0, normalized_weighted_avg_swe)) |>
+         normalized_weighted_avg_swe = if_else(day_of_water_year < 16 | (month >= 7 & month <=9), NA, normalized_weighted_avg_swe)
+         ) |>
   left_join(model_weights, by = c("period")) |>
   mutate(weight_for_30_d_trailing_sum_UKLNI = day_of_water_year*wi_slope + wi_intercept,
          weight_for_30_d_trailing_sum_precip = day_of_water_year*wp_30_slope + wp_30_intercept,
@@ -100,11 +101,11 @@ nwi <- prism_full |>
          weight_for_normalized_weighted_avg_swe = day_of_water_year*ws_slope + ws_intercept,
          weight_for_climate_index = day_of_water_year*wc_slope + wc_intercept,
          climate_index_lag_0 = ifelse(climate_index_used == "3 mta PDO_CN34", normalized_3mta_normalized_PDO_CN34_lag_0, normalized_3mta_normalized_PDO_lag_0),
-         wetness_index_v20 =
+         wetness_index_v20 = 
            normalized_30_d_trailing_sum_UKLNI*weight_for_30_d_trailing_sum_UKLNI +
            normalized_30_trailing_sum_precipitation*weight_for_30_d_trailing_sum_precip +
            normalized_trailing_sum_31_1095_d_precip_in*weight_for_tot_31_1095_d_trailing_sum_precip +
-           normalized_weighted_avg_swe*weight_for_normalized_weighted_avg_swe +
+           replace_na(normalized_weighted_avg_swe, 0)*weight_for_normalized_weighted_avg_swe +
            climate_index_lag_0*weight_for_climate_index
          ) |>
   left_join(nwi_min_max, by=c("day_of_water_year")) |>
@@ -126,7 +127,7 @@ nwi_cleaned <- nwi[,c("date", "month", "day", "year", "day_of_water_year", "leap
        "weight_for_30_d_trailing_sum_precip",
        "normalized_trailing_sum_31_1095_d_precip_in",
        "weight_for_tot_31_1095_d_trailing_sum_precip",
-       "weighted_normalized_avg_swe",
+       "normalized_weighted_avg_swe",
        "weight_for_normalized_weighted_avg_swe",
        "normalized_3mta_normalized_PDO_lag_0",
        "normalized_3mta_normalized_PDO_CN34_lag_0",
