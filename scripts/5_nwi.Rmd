@@ -36,7 +36,7 @@ normalize <- function(x, min_val, max_val) {
 nwi_min_max <- read_csv(here::here("data/nwi_data/nwi_min_max.csv")) |> glimpse()
 model_weights <- read_csv(here::here("data/nwi_data/nwi_model_weights.csv")) |> 
   dplyr::select(-c("date", "day_of_water_year")) |> glimpse()
-prism_data <- read_csv(here::here("data/prism_data/prism_ppt_summary_export.csv")) |> glimpse()
+prism_data <- read_csv(here::here("data/prism_data/archival_prism_ppt_summary_export.csv")) |> glimpse()
 climate_indicies <- read_csv(here::here("data/climate_indicies_data/normalized_climate_indicies.csv")) |> glimpse()
 swe <- read_csv(here::here("data/swe_data/swe_summary.csv")) |> glimpse()
 uklni_net_inflow <- read_csv(here::here("data/ukr_net_inflow/net_inflow_export.csv")) |> glimpse()
@@ -58,6 +58,7 @@ start_date <- as.Date(paste0(year(Sys.Date()) - 1, "-09-14"))
 ### Expand Climate Indicies
 ```{r}
 expanded_climate_indicies <- climate_indicies |>
+  # mutate(date=as.Date(date, format="%m/%d/%Y")) |>
   rowwise() %>%
   mutate(date = list(seq.Date(date, ceiling_date(date, "month") - days(1), by = "day"))) |>
   unnest(date) |> 

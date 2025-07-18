@@ -100,7 +100,7 @@ station_triplets_lookup <- c(
   "395:OR:SNTL" = "Chemult Alternate SWE (in)",
   "406:OR:SNTL" = "Cold Springs Camp SWE (in)",
   "442:OR:SNTL" = "Diamond Lake SWE (in)",
-  "478:WA:SNTL" = "Fish Lake SWE (in)",
+  "479:OR:SNTL" = "Fish Lake SWE (in)",
   "483:OR:SNTL" = "Fourmile Lake SWE (in)",
   "706:OR:SNTL" = "Quartz Mountain SWE (in)",
   "745:OR:SNTL" = "Sevenmile Marsh SWE (in)",

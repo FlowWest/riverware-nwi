@@ -142,9 +142,9 @@ swe_summary <- full_swe_df |>
            (sprague_huc8_mean_swe*snotel_area$`Proportion of area >1500 m`[3])) |> 
   left_join(min_max_weight_swe, by = "day_of_water_year") |>
   rowwise()|>
-  mutate(normalized_average_swe = round(normalize(weighted_average_swe, 
+  mutate(normalized_average_swe = normalize(weighted_average_swe, 
                                                   min_weighted_average_swe_in, 
-                                                  max_weighted_average_swe_in), 2))|>
+                                                  max_weighted_average_swe_in))|>
   ungroup() |>
   mutate(
     normalized_average_swe = case_when(
@@ -155,10 +155,10 @@ swe_summary <- full_swe_df |>
   mutate(
     day_after_oct_15 = as.integer(difftime(Date, ymd(paste0(year(Date), "-10-15")), units = "days")),
     day_after_oct_15 = ifelse(Date > ymd(paste0(year(Date), "-11-30")) | day_after_oct_15 < 1, NA, day_after_oct_15),
-    oct_16_nov_30_linear_weight = round(day_after_oct_15 * (1/46), 4),
+    oct_16_nov_30_linear_weight = day_after_oct_15 * (1/46),
     day_after_may_15_desc = 47 - as.integer(difftime(Date, ymd(paste0(year(Date), "-5-15")), units = "days")),
     day_after_may_15_desc = ifelse(Date > ymd(paste0(year(Date), "-6-30")) | Date < ymd(paste0(year(Date), "-5-16")), NA, day_after_may_15_desc),
-    may_16_jun_30_linear_weight = round(day_after_may_15_desc * (1/46), 4),
+    may_16_jun_30_linear_weight = day_after_may_15_desc * (1/46),
     weighted_normalized_avg_swe = case_when(!is.na(day_after_oct_15) ~ normalized_average_swe * oct_16_nov_30_linear_weight,
                                             !is.na(day_after_may_15_desc) ~ normalized_average_swe * may_16_jun_30_linear_weight,
                                             .default = NA)) |> 

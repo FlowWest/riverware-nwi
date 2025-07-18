@@ -140,26 +140,30 @@ ppt_long_recent_data <- prism_ppt_data |>
 write_csv(ppt_long_recent_data, here::here("data/prism_data/recent_prism_ppt_download.csv"))
 ```
 ```{r}
-ppt_archival <- read_csv(here::here("data/prism_data/archive_prism.csv")) |> 
-  pivot_longer(!Date, names_to = "name", values_to = "ppt") |> 
-  mutate(date = as.Date(Date, format = "%m/%d/%Y")) |> 
-  dplyr::select(-("Date")) |> glimpse()
+# ppt_archival <- read_csv(here::here("data/prism_data/archive_prism.csv")) |> 
+#   pivot_longer(!Date, names_to = "name", values_to = "ppt") |> 
+#   mutate(date = as.Date(Date, format = "%m/%d/%Y")) |> 
+#   dplyr::select(-("Date")) |> glimpse()
 ```
 ### Bind historic data with recent data
 Recent data value of the same date replaces historic data values
 ```{r}
-ppt_long_data <- full_join(
-  # ppt_long_recent_data, ppt_long_historic_data,
-  ppt_archival, ppt_long_historic_data,
-  by = c("date", "name") ,
-  suffix = c("_recent", "_historic")) |> 
-  mutate(ppt = coalesce(ppt_recent, ppt_historic)) |> 
-  dplyr::select(c("date", "name", "ppt")) |> 
-  arrange(date)
+# ppt_long_data <- full_join(
+#   # ppt_long_recent_data, ppt_long_historic_data,
+#   ppt_archival, ppt_long_historic_data,
+#   by = c("date", "name") ,
+#   suffix = c("_recent", "_historic")) |> 
+#   mutate(ppt = coalesce(ppt_recent, ppt_historic)) |> 
+#   dplyr::select(c("date", "name", "ppt")) |> 
+#   arrange(date)
 ```
-### Generate data PPT data summaries, normalized values 
 ```{r}
-ppt_data_summary <- ppt_long_data |>
+ppt_hist_archival <- read_csv(here::here("data/prism_data/archival_hist_prism_ppt.csv")) |> 
+  mutate(date = as.Date(date, format = "%m/%d/%Y")) |> glimpse()
+ppt_archival <- read_csv(here::here("data/prism_data/archive_prism.csv")) |> 
+  pivot_longer(!Date, names_to = "name", values_to = "ppt") |> 
+  mutate(date = as.Date(Date, format = "%m/%d/%Y")) |> 
+  dplyr::select(-("Date")) |> 
   mutate(group = case_when(
     startsWith(name, "UKL") ~ "mean_total_daily_precip_ukl",
     startsWith(name, "WIL") ~ "mean_total_daily_precip_williamson",
@@ -167,7 +171,23 @@ ppt_data_summary <- ppt_long_data |>
   )) |>
   group_by(date, group) |>
   summarise(mean = mean(ppt)) |>
-  pivot_wider(names_from = "group", values_from ="mean") |>
+  pivot_wider(names_from = "group", values_from ="mean")
+
+ppt_long_data <- bind_rows(ppt_hist_archival, ppt_archival) |> 
+  arrange(date)
+```
+### Generate data PPT data summaries, normalized values 
+```{r}
+# ppt_data_summary <- ppt_long_data |>
+#   mutate(group = case_when(
+#     startsWith(name, "UKL") ~ "mean_total_daily_precip_ukl",
+#     startsWith(name, "WIL") ~ "mean_total_daily_precip_williamson",
+#     startsWith(name, "SPR") ~ "mean_total_daily_precip_sprague"
+#   )) |>
+#   group_by(date, group) |>
+#   summarise(mean = mean(ppt)) |>
+  # pivot_wider(names_from = "group", values_from ="mean") |>
+ppt_data_summary <- ppt_long_data |>
   mutate(water_year = ifelse(month(date) >= 10, year(date) + 1, year(date))) |>
   group_by(water_year) %>%
   mutate(

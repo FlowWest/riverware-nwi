@@ -393,7 +393,7 @@ observed_net_inflow_30_d_trailing_sum <- read_csv(here::here("data/ukr_net_inflo
 l1_taf <- read_csv(here::here("data/ukr_net_inflow/l1_taf.csv"), col_types = cols(date =col_date(format = "%m/%d/%Y")))
 
 l1_taf <- l1_taf|> 
-  mutate(thirty_d_trailing_sum_uklni_taf = lag(round(zoo::rollsum(I1_taf, k = 30, fill=NA, align = "right"), 2), n=1)) |> glimpse()
+  mutate(thirty_d_trailing_sum_uklni_taf = lag(zoo::rollsum(I1_taf, k = 30, fill=NA, align = "right"), n=1)) |> glimpse()
 
 simulated_net_inflow_30_d_trailing_sum <- observed_net_inflow_30_d_trailing_sum |> 
   left_join(l1_taf, by = c("day_of_water_year")) |>
@@ -422,12 +422,12 @@ net_inflow_export <- combined_net_inflow_smooth |>
     day_of_water_year = as.integer(difftime(date, ymd(paste0(water_year - 1 ,'-09-30')), units = "days"))) |> 
   ungroup() |> 
   mutate(
-    ukl_net_inflow_30_d_trailing_sum_taf = lag(zoo::rollsum(ukl_net_inflow_smoothed, k = 30, fill=NA, align = "right"), 1)) |> 
+    ukl_net_inflow_30_d_trailing_sum_taf = lag(zoo::rollsum(ukl_net_inflow_smoothed, k = 30, fill=NA, align = "right"), n=1)) |> 
   left_join(simulated_net_inflow_30_d_trailing_sum, by=c("day_of_water_year")) |>
   rowwise() |> 
   mutate(
          normalized_30_d_trailing_sum_UKLNI =
-           round(normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf), 3)
+           normalize(ukl_net_inflow_30_d_trailing_sum_taf,observed_min_thirty_d_trailing_sum_uklni_taf,observed_max_thirty_d_trailing_sum_uklni_taf)
          ) |>
   ungroup() |>
   mutate(
