@@ -159,7 +159,7 @@ swe_summary <- full_swe_df |>
     day_after_may_15_desc = 47 - as.integer(difftime(Date, ymd(paste0(year(Date), "-5-15")), units = "days")),
     day_after_may_15_desc = ifelse(Date > ymd(paste0(year(Date), "-6-30")) | Date < ymd(paste0(year(Date), "-5-16")), NA, day_after_may_15_desc),
     may_16_jun_30_linear_weight = day_after_may_15_desc * (1/46),
-    weighted_normalized_avg_swe = case_when(!is.na(day_after_oct_15) ~ normalized_average_swe * oct_16_nov_30_linear_weight,
+    normalized_weighted_avg_swe = case_when(!is.na(day_after_oct_15) ~ normalized_average_swe * oct_16_nov_30_linear_weight,
                                             !is.na(day_after_may_15_desc) ~ normalized_average_swe * may_16_jun_30_linear_weight,
                                             .default = NA)) |> 
   dplyr::select(-c(min_weighted_average_swe_in, 
