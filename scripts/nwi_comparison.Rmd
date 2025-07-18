@@ -1,0 +1,20 @@
+---
+title: "nwi_comparison"
+author: "Inigo Peng"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+```{r}
+nwi_comp <- read_csv("data/nwi_data/nwi_comparison.csv")
+nwi_comp_long <- nwi_comp |>
+  mutate(across(-date, ~as.numeric(.x))) |>
+  pivot_longer(!date, names_to = "index") |> 
+  mutate(date = as.Date(date, format="%m/%d/%Y")) |> 
+  glimpse()
+
+```
