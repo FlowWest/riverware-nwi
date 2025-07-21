@@ -137,16 +137,38 @@ ppt_long_recent_data <- prism_ppt_data |>
   dplyr::select(-c(longitude, latitude)) |>
   pivot_longer(!name, names_to = "date", values_to = "ppt") |> 
   mutate(date = as.Date(date)) |> glimpse()
-write_csv(ppt_long_recent_data, here::here("data/prism_data/recent_prism_ppt_download.csv"))
+write_csv(ppt_long_recent_data, here::here("data/prism_data/provisional_recent_prism_ppt.csv"))
 ```
 ```{r}
-# ppt_archival <- read_csv(here::here("data/prism_data/archive_prism.csv")) |>
-#   pivot_longer(!Date, names_to = "name", values_to = "ppt") |>
-#   mutate(date = as.Date(Date, format = "%m/%d/%Y")) |>
-#   dplyr::select(-("Date")) |> glimpse()
+ppt_hist_provisional <- read_csv(here::here("data/prism_data/provisional_hist_prism_ppt.csv")) |>
+  mutate(date = as.Date(date, format = "%m/%d/%Y")) |>
+  filter(date < "2025-03-15") |> 
+  mutate(group = case_when(
+    startsWith(name, "UKL") ~ "mean_total_daily_precip_ukl",
+    startsWith(name, "WIL") ~ "mean_total_daily_precip_williamson",
+    startsWith(name, "SPR") ~ "mean_total_daily_precip_sprague"
+  )) |>
+  group_by(date, group) |>
+  summarise(mean = mean(ppt)) |>
+  pivot_wider(names_from = "group", values_from ="mean")
+
 ```
 ```{r}
-ppt_hist_early <- read_csv(here::here("data/prism_data/archival_hist_prism_ppt.csv")) |>
+ppt_long_data_provisional <- ppt_long_recent_data |>
+  mutate(group = case_when(
+    startsWith(name, "UKL") ~ "mean_total_daily_precip_ukl",
+    startsWith(name, "WIL") ~ "mean_total_daily_precip_williamson",
+    startsWith(name, "SPR") ~ "mean_total_daily_precip_sprague"
+  )) |>
+  group_by(date, group) |>
+  summarise(mean = mean(ppt)) |>
+pivot_wider(names_from = "group", values_from ="mean")
+ppt_long_data_provisional <- bind_rows(ppt_hist_provisional, ppt_long_data_provisional) |> 
+  arrange(date)
+
+```
+```{r}
+ppt_hist_early <- read_csv(here::here("data/prism_data/early_hist_prism_ppt.csv")) |>
   mutate(date = as.Date(date, format = "%m/%d/%Y")) |> glimpse()
 
 ```
@@ -163,7 +185,7 @@ Recent data value of the same date replaces historic data values
 #   arrange(date)
 ```
 ```{r}
-ppt_early <- read_csv(here::here("data/prism_data/archive_prism.csv")) |> 
+ppt_recent_early <- read_csv(here::here("data/prism_data/early_recent_prism_ppt.csv")) |> 
   pivot_longer(!Date, names_to = "name", values_to = "ppt") |> 
   mutate(date = as.Date(Date, format = "%m/%d/%Y")) |> 
   dplyr::select(-("Date")) |> 
@@ -182,20 +204,8 @@ ppt_long_data_early <- bind_rows(ppt_hist_early, ppt_early) |>
 ```
 ### Generate data PPT data summaries, normalized values 
 ```{r}
-ppt_long_data_provisional <- ppt_long_recent_data |>
-  mutate(group = case_when(
-    startsWith(name, "UKL") ~ "mean_total_daily_precip_ukl",
-    startsWith(name, "WIL") ~ "mean_total_daily_precip_williamson",
-    startsWith(name, "SPR") ~ "mean_total_daily_precip_sprague"
-  )) |>
-  group_by(date, group) |>
-  summarise(mean = mean(ppt)) |>
-pivot_wider(names_from = "group", values_from ="mean") 
-ppt_long_data_provisional <- bind_rows(ppt_hist_early, ppt_long_data_provisional) |> 
-  arrange(date)
-
-ppt_data_summary <- ppt_long_data_early |> 
-# ppt_data_summary <- ppt_long_data_provisional |>
+# ppt_data_summary <- ppt_long_data_early |>
+ppt_data_summary <- ppt_long_data_provisional |>
   mutate(water_year = ifelse(month(date) >= 10, year(date) + 1, year(date))) |>
   group_by(water_year) %>%
   mutate(
@@ -263,7 +273,9 @@ mutate(
   ) |> 
   dplyr::select(-c(min_30_trailing_sum_ppt, max_30_trailing_sum_ppt, max_of_31_1095_d_trailing_sum_ppt, min_31_1095_d_trailing_sum_ppt)) 
 
-write_csv(ppt_data_export, here::here("data/prism_data/early_prism_ppt_summary_export.csv"))
+# write_csv(ppt_data_export, here::here("data/prism_data/early_prism_ppt_summary_export.csv"))
+
+write_csv(ppt_data_export, here::here("data/prism_data/provisional_prism_ppt_summary_export.csv"))
 ```
 
 ### Run these chunks if downloaded Tmean and Tmax Data

@@ -19,7 +19,8 @@ nwi_comp_long <- nwi_comp |>
   glimpse()
 ```
 ```{r}
-nwi_wetness_index <- nwi_comp_long |> filter(index %in% c("wetness_index_v20_ip", "wetness_index_v20_vik"))
+nwi_wetness_index <- nwi_comp_long |> filter(index %in% c("wetness_index_v20_ip", "wetness_index_v20_vik")) |> 
+  filter(date > "2025-01-01")
 
 ggplot(nwi_wetness_index, aes(x = date, y = value, color = index)) +
     geom_line() +
@@ -114,3 +115,71 @@ generated normalized wetness index is on average 0.0016 smaller than bureaus nor
 generated normalized wetness index and bureaus normalized wetness index has 0.00005 in variability
 root mean squared of 0.007 unit magnitude of difference
 0.999 correlation between the two indices
+
+
+## Early Prism Data vs Provisional Prism Data Comparison
+```{r}
+prism_data_comp <- read_csv("data/prism_data/early_provisional_comparison.csv") |> 
+  mutate(across(-date, ~as.numeric(.x)),
+         date = as.Date(date, format="%m/%d/%Y")) |> glimpse()
+  
+prism_comp_long <- prism_data_comp |>
+  pivot_longer(!date, names_to = "index") |> 
+  glimpse()
+```
+```{r}
+normalized_30_trailing_sum <- prism_comp_long |> filter(index %in% c("early_normalized_30_trailing_sum_precipitation", "provisional_normalized_30_trailing_sum_precipitation"))
+
+ggplot(normalized_30_trailing_sum, aes(x = date, y = value, color = index)) +
+    geom_line() +
+    theme_minimal()
+
+```
+```{r}
+normalized_30_trailing_sum <- prism_data_comp  |> 
+  dplyr::select(c("date", "early_normalized_30_trailing_sum_precipitation", "provisional_normalized_30_trailing_sum_precipitation")) |> glimpse()
+
+divergence_normalzied_30_stats <- normalized_30_trailing_sum  |> 
+  mutate(index_diff = early_normalized_30_trailing_sum_precipitation - provisional_normalized_30_trailing_sum_precipitation) |>
+  summarise(
+    mean = mean(index_diff, na.rm=TRUE),        
+    var_diff = var(index_diff,     na.rm = TRUE),        
+    rmse = sqrt(mean(index_diff^2, na.rm = TRUE)),
+    correlation = cor(
+      early_normalized_30_trailing_sum_precipitation,
+      provisional_normalized_30_trailing_sum_precipitation,
+      use = "pairwise.complete.obs"
+    )                                             
+  )
+
+print(divergence_normalzied_30_stats)
+```
+
+```{r}
+normalized_1095_trailing_sum <- prism_comp_long |> filter(index %in% c("early_normalized_trailing_sum_31_1095_d_precip_in", "provisional_normalized_trailing_sum_31_1095_d_precip_in"))
+
+ggplot(normalized_1095_trailing_sum, aes(x = date, y = value, color = index)) +
+    geom_line() +
+    theme_minimal()
+
+```
+```{r}
+normalized_1095_trailing_sum <- prism_data_comp  |> 
+  dplyr::select(c("date", "early_normalized_trailing_sum_31_1095_d_precip_in", "provisional_normalized_trailing_sum_31_1095_d_precip_in")) |> glimpse()
+
+divergence_normalzied_1095_stats <- normalized_1095_trailing_sum  |> 
+  mutate(index_diff = early_normalized_trailing_sum_31_1095_d_precip_in - provisional_normalized_trailing_sum_31_1095_d_precip_in) |>
+  summarise(
+    mean = mean(index_diff, na.rm=TRUE),        
+    var_diff = var(index_diff,     na.rm = TRUE),        
+    rmse = sqrt(mean(index_diff^2, na.rm = TRUE)),
+    correlation = cor(
+      early_normalized_trailing_sum_31_1095_d_precip_in,
+      provisional_normalized_trailing_sum_31_1095_d_precip_in,
+      use = "pairwise.complete.obs"
+    )                                             
+  )
+
+print(divergence_normalzied_1095_stats)
+```
+
