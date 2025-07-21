@@ -19,8 +19,7 @@ nwi_comp_long <- nwi_comp |>
   glimpse()
 ```
 ```{r}
-nwi_wetness_index <- nwi_comp_long |> filter(index %in% c("wetness_index_v20_ip", "wetness_index_v20_vik")) |> 
-  filter(date > "2025-01-01")
+nwi_wetness_index <- nwi_comp_long |> filter(index %in% c("wetness_index_v20_ip", "wetness_index_v20_vik"))
 
 ggplot(nwi_wetness_index, aes(x = date, y = value, color = index)) +
     geom_line() +
