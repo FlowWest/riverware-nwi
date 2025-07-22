@@ -260,17 +260,18 @@ get_usbr_data <- function(site_number, parameter, workspace = here::here("data-r
   
   csv_url <- str_glue("https://www.usbr.gov/uc/water/hydrodata/klamath_basin_data/{site_number}/csv/{parameter}.csv")
   
-  if(!dir.exists(workspace)) {
-    dir.create(workspace, recursive = T)
-  }
-  
-  if(!file.exists(file.path(workspace, filename_Rds))) {
-    httr::GET(url = csv_url, httr::write_disk(file.path(workspace, filename_csv), overwrite = T))
-    data_raw <- read_csv(file.path(workspace, filename_csv)) 
-    data_raw |> saveRDS(file.path(workspace, filename_Rds))
-  } else {
-    data_raw <- readRDS(file.path(workspace, filename_Rds))
-  }
+  # if(!dir.exists(workspace)) {
+  #   dir.create(workspace, recursive = T)
+  # }
+  # 
+  # if(!file.exists(file.path(workspace, filename_Rds))) {
+  httr::GET(url = csv_url, httr::write_disk(file.path(workspace, filename_csv), overwrite = T))
+  data_raw <- read_csv(file.path(workspace, filename_csv)) 
+  data_raw |> saveRDS(file.path(workspace, filename_Rds))
+  # } 
+# else {
+#     data_raw <- readRDS(file.path(workspace, filename_Rds))
+#   }
   
   data_raw
 }
@@ -369,6 +370,8 @@ exp_smooth_ts <- function(ts, alpha) {
 combined_net_inflow_smooth <-
   combined_net_inflow |>
   mutate(ukl_net_inflow_smoothed = lag(exp_smooth_ts(ukl_net_inflow, alpha = 0.182), 1))
+combined_net_inflow_smooth$ukl_net_inflow_smoothed[1] = combined_net_inflow_smooth$ukl_net_inflow_smoothed[2]
+
 # any(format(combined_net_inflow_smooth$date_time, "%m-%d") == "02-29")
 combined_net_inflow_smooth |>
   head(100) |>
@@ -392,8 +395,16 @@ observed_net_inflow_30_d_trailing_sum <- read_csv(here::here("data/ukr_net_inflo
 
 l1_taf <- read_csv(here::here("data/ukr_net_inflow/l1_taf.csv"), col_types = cols(date =col_date(format = "%m/%d/%Y")))
 
+l1_hist <- read_csv(here::here("data/ukr_net_inflow/l1_hist.csv")) |> 
+  mutate(month_day_index = as.Date(month_day_index, format="%m-%d"),
+         month = month(month_day_index),
+         day = day(month_day_index)) |>
+  dplyr::select(-c("month_day_index")) |> glimpse()
+
+
 l1_taf <- l1_taf|> 
-  mutate(thirty_d_trailing_sum_uklni_taf = lag(zoo::rollsum(I1_taf, k = 30, fill=NA, align = "right"), n=1)) |> glimpse()
+  mutate(
+    thirty_d_trailing_sum_uklni_taf = lag(zoo::rollsum(I1_taf, k = 30, fill=NA, align = "right"), n=1)) |> glimpse()
 
 simulated_net_inflow_30_d_trailing_sum <- observed_net_inflow_30_d_trailing_sum |> 
   left_join(l1_taf, by = c("day_of_water_year")) |>
@@ -416,13 +427,25 @@ normalize <- function(x, min_val, max_val) {
 
 net_inflow_export <- combined_net_inflow_smooth |>
   mutate(
-    water_year = ifelse(month(date) >= 10, year(date) + 1, year(date))) |> 
-  group_by(water_year) %>% 
+    water_year = ifelse(month(date) >= 10, year(date) + 1, year(date)),
+    month = month(date),
+    day = day(date)) |> 
+  group_by(water_year) |> 
   mutate(
     day_of_water_year = as.integer(difftime(date, ymd(paste0(water_year - 1 ,'-09-30')), units = "days"))) |> 
   ungroup() |> 
+  left_join(l1_hist, by=c("month", "day")) |> 
   mutate(
-    ukl_net_inflow_30_d_trailing_sum_taf = lag(zoo::rollsum(ukl_net_inflow_smoothed, k = 30, fill=NA, align = "right"), n=1)) |> 
+      agency_barnes_reconnected = ifelse(date > "2025-01-01", 1, 0),
+      preceding_alb_connection_index = ifelse(date>"2024-12-2" & date <"2025-01-2", 1, 
+                                              0),
+      avg_l1_hist_minus_l1_taf = ifelse(preceding_alb_connection_index==1,
+                                        avg_l1_hist_minus_l1_taf, 0),
+      ukl_net_inflow_smoothed = ifelse(preceding_alb_connection_index==1, 
+                                       ukl_net_inflow_smoothed - 
+                                       avg_l1_hist_minus_l1_taf, 
+                                       ukl_net_inflow_smoothed),
+      ukl_net_inflow_30_d_trailing_sum_taf = lag(zoo::rollsum(ukl_net_inflow_smoothed, k = 30, fill=NA, align = "right"))) |> 
   left_join(simulated_net_inflow_30_d_trailing_sum, by=c("day_of_water_year")) |>
   rowwise() |> 
   mutate(
