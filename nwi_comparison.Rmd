@@ -46,9 +46,9 @@ divergence_stats <- wetness_index  |>
 
 print(divergence_stats)
 ```
-generated wetness index is on average 0.00297 smaller than bureaus wetnessindex
+generated wetness index is on average 0.00313 smaller than bureaus wetnessindex
 generated wetness index and bureaus wetness index has 0.0002 in variability
-root mean squared of 0.015 unit magnitude of difference
+root mean squared of 0.016 unit magnitude of difference
 0.999 correlation between the two indices
 
 ```{r}
@@ -182,3 +182,11 @@ divergence_normalzied_1095_stats <- normalized_1095_trailing_sum  |>
 print(divergence_normalzied_1095_stats)
 ```
 
+```{r}
+nwi_wetness_index <- nwi_comp_long |> filter(index %in% c("normalized_30_d_trailing_sum_UKLNI", "Normalized 30-d trailing sum UKLNI"))
+
+ggplot(nwi_wetness_index, aes(x = date, y = value, color = index)) +
+    geom_line() +
+    theme_minimal()
+
+```

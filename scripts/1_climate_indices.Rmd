@@ -62,7 +62,7 @@ clean_n34_df <- n34_df_filtered |>
   filter(!is.na(N34)) |> 
   mutate(
     month = match(tolower(month), tolower(month.abb)), 
-    month = sprintf("%02d", month),  # Ensure two-digit format
+    month = sprintf("%02d", month), 
     index = paste(Year, month, sep = "-"),
     month = as.numeric(month),
     Year = as.numeric(Year))|>
@@ -78,9 +78,7 @@ download.file(pdo_url, destfile = pdo_file, mode = "wb")
 ### Read in and clean PDO
 ```{r}
 pdo_raw <- read_lines(pdo_file)
-#Remove header
 pdo<- pdo_raw[-1]
-# Convert to dataframe
 pdo_df <- read.table(text = pdo, header = FALSE, fill = TRUE)
 colnames(pdo_df) <- c("Year", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -106,24 +104,30 @@ clean_pdo_df <- pdo_df_filtered |>
 ```{r}
 normalize <- function(x, min_val, max_val) {
   norm_value <- (x - min_val) / (max_val - min_val)
-  return(max(0, min(1, norm_value)))  # Ensure within [0,1] range
+  return(max(0, min(1, norm_value)))
 }
 
 colnames(normalizing_values) <- tolower(colnames(normalizing_values))
 
-df_date_lag <- clean_n34_df |>
-  mutate(date = as.Date(paste0(index, "-01")) %m+% months(1)) |> 
-  dplyr::select(date)
+# df_date_lag <- clean_n34_df |>
+#   mutate(date = as.Date(paste0(index, "-01")) %m+% months(1)) |> 
+#   dplyr::select(date)
 
 clean_pdo_df_date <- clean_pdo_df |> 
-  mutate(date = as.Date(paste0(index, "-01")))
+  mutate(date = as.Date(paste0(index, "-01"))) |> glimpse()
+
+max_date <- clean_pdo_df_date |> 
+  pull(date) |> 
+  max() |>            
+  `%m+%`(months(1))
 
 full_normalized_df <- clean_n34_df|>
   mutate(date = as.Date(paste0(index, "-01"))) |>
-  full_join(df_date_lag) |> 
+  # full_join(df_date_lag) |>
+  full_join(clean_pdo_df_date, by = c("month", "index", "Year","date")) |>
   left_join(normalizing_values, by = "month")|>
-  left_join(three_mta_norm_values, by="month") |> 
-  left_join(clean_pdo_df_date, by = c("month", "index", "Year","date")) |>
+  left_join(three_mta_norm_values, by="month") |> #TODO ADD ROW
+  add_row(date=max_date) |>
   rowwise()|>
   mutate(normalized_CN34 = 1 - normalize(N34, minimum_of_n34, maximum_of_n34),
          normalized_pdo = normalize(PDO, minimum_of_pdo, maximum_of_pdo),
@@ -144,6 +148,8 @@ full_normalized_df <- clean_n34_df|>
     normalized_3mta_normalized_PDO_CN34_lag_0 = lag(normalized_3mta_normalized_PDO_CN34, n=1)
   ) |> 
   rename(year=Year) |> glimpse()
+
+full_normalized_df[nrow(full_normalized_df),]$normalized_3mta_normalized_PDO_CN34_lag_0 <- if_else(is.na(full_normalized_df[nrow(full_normalized_df)-1,]$normalized_3mta_normalized_PDO_CN34), full_normalized_df[nrow(full_normalized_df)-1,]$normalized_3mta_normalized_PDO_CN34_lag_0, full_normalized_df[nrow(full_normalized_df)-1,]$normalized_3mta_normalized_PDO_CN34)
 
 cleaned_normalized_climate_indicies <- full_normalized_df[,c("date",
                                                           "year",
