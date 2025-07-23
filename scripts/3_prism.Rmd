@@ -56,6 +56,9 @@ last_date_recorded <- max(ppt_hist_early$date)
 # prism_start_date = Sys.Date() - 16
 prism_start_date = last_date_recorded + 1
 prism_end_date = Sys.Date() - 1
+if (prism_start_date > prism_end_date){
+  warning("Start date before end date")
+}
 # prism_end_date = as.Date("2025-3-30")
 # element_list <- c("ppt", "tmean", "tmax")
 element_list <- c("ppt")
@@ -90,7 +93,18 @@ for (element in element_list){
 ```{r}
 for (element in element_list){
   #TODO errors out on unzipped folder
-  nc_files <- list.files(path = paste0(local_dir,"/Prism_Files/", element), pattern = "\\.zip$", full.names = TRUE)
+  # nc_files <- list.files(path = paste0(local_dir,"/Prism_Files/", element), pattern = "\\.zip$", full.names = TRUE)
+  nc_files <- c()
+  for (date in seq(prism_start_date, prism_end_date, by = "day")) {
+    ds <- format(as.Date(date), "%Y%m%d")
+    daily_files <- list.files(
+      path       = paste0(local_dir,"/Prism_Files/", element),
+      pattern    = paste0(ds, ".*\\.zip$"), # starts with date, ends in .zip
+      full.names = TRUE
+    )
+    # accumulate:
+    nc_files <- c(nc_files, daily_files)
+}
   for (file in nc_files){
     print(file)
     date_str <- str_extract(file, "[0-9]{8}")
@@ -283,8 +297,7 @@ write_csv(ppt_data_export, here::here("data/prism_data/early_prism_ppt_summary_e
 
 # write_csv(ppt_data_export, here::here("data/prism_data/provisional_prism_ppt_summary_export.csv"))
 ```
-
-### Run these chunks if downloaded Tmean and Tmax Data
+## Only run these chunks if downloaded Tmean and Tmax Data
 
 ```{r}
 tmean_long_data <- prism_tmean_data |>
